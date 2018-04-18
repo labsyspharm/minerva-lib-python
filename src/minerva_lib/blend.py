@@ -26,12 +26,12 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     return (256 * f_bgr).astype(np.uint8)
 
 
-def linear_bgr(all_imgs, colors, ranges=None):
+def linear_bgr(all_imgs, colors, ranges):
     '''Blend all channels given
     Arguments:
         all_imgs: List of numpy images, one per channel
         colors: N-channel by b, g, r float32 color
-        ranges: N-channel by min, max float32 range, defaults to full range
+        ranges: N-channel by min, max float32 range
 
     Returns:
         uint8 y by x by 3 color BGR image
@@ -41,7 +41,11 @@ def linear_bgr(all_imgs, colors, ranges=None):
 
     # Ensure a color per channel has been specified
     if num_channels != len(colors):
-        raise ValueError('A color per channel must be specified')
+        raise ValueError('One color per channel must be specified')
+
+    # Ensure a range per channel has been specified
+    if num_channels != len(ranges):
+        raise ValueError('One range per channel must be specified')
 
     # Get the shape of the pixels and ensure they are all the same size
     shape = all_imgs[0].shape
@@ -49,12 +53,8 @@ def linear_bgr(all_imgs, colors, ranges=None):
         if pixels.shape != shape:
             raise ValueError('All channels must have equal pixel dimensions')
 
-    # Shape of 3 colour pixels
+    # Shape of 3 color pixels
     shape_color = shape + (3,)
-
-    # Default range to 0,1 for all channels
-    if ranges is None:
-        ranges = np.float32(([0, 1],) * num_channels)
 
     # Final buffer for blending
     img_buffer = np.zeros(shape_color, dtype=np.float32)
