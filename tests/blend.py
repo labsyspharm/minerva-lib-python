@@ -186,4 +186,3 @@ def test_to_f32_full():
     img_out = to_f32(img_in)
     img_pair = img_ok, img_out
     Key.full_check(img_pair)
-
