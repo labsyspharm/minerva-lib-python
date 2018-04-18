@@ -8,9 +8,8 @@ def to_f32(img):
     img: an integer image
     '''
 
-    n_bits = 8 * img.itemsize
-    bit_factor = 1.0 / (2.0 ** n_bits)
-    return np.float32(img * bit_factor)
+    one = 1+np.iinfo(img.dtype).max
+    return np.float32(img / one)
 
 
 def f32_to_bgr(f_img, color=[1, 1, 1]):
