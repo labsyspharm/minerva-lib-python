@@ -129,7 +129,7 @@ def test_color(image_1channel, range_all, colors, expected):
 
 
 def test_multi_channel(image_2channel, range_all, color_blue, color_yellow):
-    '''Blend an image with multiple channels'''
+    '''Test blending an image with multiple channels'''
 
     expected = 127 * np.uint8([
         [color_yellow, color_blue],
@@ -141,3 +141,23 @@ def test_multi_channel(image_2channel, range_all, color_blue, color_yellow):
                         ranges=[range_all, range_all])
 
     np.testing.assert_array_equal(expected, result)
+
+
+def test_channel_range_mismatch(image_2channel, range_all, color_white):
+    '''Test supplying wrong number of ranges for the number of channels'''
+
+    with pytest.raises(ValueError,
+                       match=r'One range per channel must be specified'):
+        linear_bgr(image_2channel,
+                   colors=[color_white, color_white],
+                   ranges=[range_all])
+
+
+def test_channel_color_mismatch(image_2channel, range_all, color_white):
+    '''Test supplying wrong number of colors for the number of channels'''
+
+    with pytest.raises(ValueError,
+                       match=r'One color per channel must be specified'):
+        linear_bgr(image_2channel,
+                   colors=[color_white],
+                   ranges=[range_all, range_all])
