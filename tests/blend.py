@@ -32,22 +32,22 @@ def color_white():
 
 @pytest.fixture
 def color_yellow():
-    return np.float32([1, 1, 1])
+    return np.float32([0, 1, 1])
 
 
 @pytest.fixture
 def color_green():
-    return np.float32([1, 1, 1])
+    return np.float32([0, 1, 0])
 
 
 @pytest.fixture
 def color_blue():
-    return np.float32([1, 1, 1])
+    return np.float32([1, 0, 0])
 
 
 @pytest.fixture
 def color_red():
-    return np.float32([1, 1, 1])
+    return np.float32([0, 0, 1])
 
 
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
@@ -72,57 +72,81 @@ def image_2channel():
     ]])
 
 
-@pytest.mark.parametrize('rngs,expected', [
-    (
-        np.float32([0, 1]),
-        np.uint8([[[0, 0, 0]], [[1, 1, 1]], [[255, 255, 255]]])
-    ),
-    (
-        np.float32([0, 256. / 65535.]),
-        np.uint8([[[0, 0, 0]], [[255, 255, 255]], [[0, 0, 0]]])
-    ),
-    (
-        np.float32([0.5, 1]),
-        np.uint8([[[0, 0, 0]], [[0, 0, 0]], [[255, 255, 255]]])
-    )
-])
-def test_range(image_1channel, color_white, rngs, expected):
-    '''Blend an image with one channel, testing ranges'''
+def test_range_all(image_1channel, color_white, range_all):
+    '''Blend an image with one channel, testing full range'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[1, 1, 1]],
+        [[255, 255, 255]]
+    ])
 
     result = linear_bgr(image_1channel,
                         colors=[color_white],
-                        ranges=[rngs])
+                        ranges=[range_all])
 
     np.testing.assert_array_equal(expected, result)
 
 
-@pytest.mark.parametrize('colors,expected', [
-    (
-        np.float32([1, 1, 1]),
-        np.uint8([[[0, 0, 0]], [[1, 1, 1]], [[255, 255, 255]]])
-    ),
-    (
-        np.float32([0, 1, 1]),
-        np.uint8([[[0, 0, 0]], [[0, 1, 1]], [[0, 255, 255]]])
-    ),
-    (
-        np.float32([0, 1, 0]),
-        np.uint8([[[0, 0, 0]], [[0, 1, 0]], [[0, 255, 0]]])
-    ),
-    (
-        np.float32([1, 0, 0]),
-        np.uint8([[[0, 0, 0]], [[1, 0, 0]], [[255, 0, 0]]])
-    ),
-    (
-        np.float32([0, 0, 1]),
-        np.uint8([[[0, 0, 0]], [[0, 0, 1]], [[0, 0, 255]]])
-    )
-])
-def test_color(image_1channel, range_all, colors, expected):
-    '''Blend an image with one channel, testing colors'''
+def test_range_high(image_1channel, color_white, range_high):
+    '''Blend an image with one channel, testing high range'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[0, 0, 0]],
+        [[255, 255, 255]]
+    ])
 
     result = linear_bgr(image_1channel,
-                        colors=[colors],
+                        colors=[color_white],
+                        ranges=[range_high])
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_range_low(image_1channel, color_white, range_low):
+    '''Blend an image with one channel, testing low range'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[255, 255, 255]],
+        [[0, 0, 0]]
+    ])
+
+    result = linear_bgr(image_1channel,
+                        colors=[color_white],
+                        ranges=[range_low])
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_color_white(image_1channel, range_all, color_white):
+    '''Blend an image with one channel, testing white color'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[1, 1, 1]],
+        [[255, 255, 255]]
+    ])
+
+    result = linear_bgr(image_1channel,
+                        colors=[color_white],
+                        ranges=[range_all])
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_color_red(image_1channel, range_all, color_red):
+    '''Blend an image with one channel, testing red color'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[0, 0, 1]],
+        [[0, 0, 255]]
+    ])
+
+    result = linear_bgr(image_1channel,
+                        colors=[color_red],
                         ranges=[range_all])
 
     np.testing.assert_array_equal(expected, result)
