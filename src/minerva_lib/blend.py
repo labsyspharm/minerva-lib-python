@@ -8,7 +8,7 @@ def to_f32(img):
     img: an integer image
     '''
 
-    one = 1+np.iinfo(img.dtype).max
+    one = np.iinfo(img.dtype).max + 1
     return np.float32(img / one)
 
 
