@@ -200,5 +200,5 @@ def test_to_f32_full(image_1channel):
     ])
 
     # Check to_f32 handles uint16 range
-    result = to_f32(image_1channel)
+    result = to_f32(image_1channel[0])
     np.testing.assert_array_equal(expected, result)
