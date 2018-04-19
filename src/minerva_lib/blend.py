@@ -83,8 +83,8 @@ def linear_bgr(all_imgs, colors, ranges):
         clip_size = highest - lowest
 
         # Apply the range
-        img_clipped = np.clip(img_ranged, lowest, highest)
-        img_norm = (img_clipped - lowest) / clip_size
+        img_ranged[(img_ranged < lowest) | (img_ranged > highest)] = lowest
+        img_norm = (img_ranged - lowest) / clip_size
 
         # Add the colored data to the image
         y_shape, x_shape = img_norm.shape
