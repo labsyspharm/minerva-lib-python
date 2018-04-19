@@ -7,8 +7,13 @@ def to_f32(img):
     Arguments:
     img: an integer image
     '''
+    try:
+        dtype_info = np.iinfo(img.dtype)
+        assert dtype_info.min is 0
+    except (ValueError, AssertionError):
+        raise ValueError("Scaling to [0,1) requires unsigned integers.")
 
-    one = np.iinfo(img.dtype).max + 1
+    one = dtype_info.max + 1
     return np.float32(img / one)
 
 
