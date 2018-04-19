@@ -52,8 +52,13 @@ def color_red():
     return np.float32([0, 0, 1])
 
 
+@pytest.fixture
+def color_khaki():
+    return np.float32([140, 230, 240]) / 255.0
+
+
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
-                        'color_blue', 'color_red'])
+                        'color_blue', 'color_red', 'color_khaki'])
 def colors(request):
     return request.getfixturevalue(request.param)
 
@@ -158,6 +163,22 @@ def test_color_red(image_1channel, range_all, color_red):
 
     result = linear_bgr(image_1channel,
                         colors=[color_red],
+                        ranges=[range_all])
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_color_khaki(image_1channel, range_all, color_khaki):
+    '''Blend an image with one channel, testing khaki color'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[0, 0, 0]],
+        [[140, 230, 240]]
+    ])
+
+    result = linear_bgr(image_1channel,
+                        colors=[color_khaki],
                         ranges=[range_all])
 
     np.testing.assert_array_equal(expected, result)
