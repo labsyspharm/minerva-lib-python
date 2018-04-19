@@ -208,7 +208,7 @@ def test_to_f32_full(image_1channel, f32_image_1channel):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_to_bgr_full(image_1channel, f32_image_1channel):
+def test_f32_to_bgr_full(image_1channel, f32_image_1channel):
     ''' Test f32 conversion across full range'''
 
     expected = np.uint8([
