@@ -5,8 +5,10 @@ def to_f32(img):
     '''Scale the dynamic range to 0.0 - 1.0
 
     Arguments:
-    img: an integer image
+    img: An integer image
     '''
+
+    # No well-defined behavior for decimal values or values less than 0
     try:
         dtype_info = np.iinfo(img.dtype)
         assert dtype_info.min is 0
@@ -24,6 +26,7 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     f_img: float32 image to reshape
     '''
 
+    # All inputs should be normalized between 0 and 1
     try:
         assert np.all((f_img >= 0) & (f_img <= 1))
     except AssertionError:

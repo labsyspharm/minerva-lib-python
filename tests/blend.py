@@ -169,7 +169,9 @@ def test_color_red(image_1channel, range_all, color_red):
 
 
 def test_color_khaki(image_1channel, range_all, color_khaki):
-    '''Blend an image with one channel, testing khaki color'''
+    '''Blend an image with one channel, testing khaki color
+    Colors of any lightness/chroma should map low uint16 input values to 0
+    '''
 
     expected = np.uint8([
         [[0, 0, 0]],
@@ -185,7 +187,9 @@ def test_color_khaki(image_1channel, range_all, color_khaki):
 
 
 def test_color_khaki_range_low(image_1channel, range_low, color_khaki):
-    '''Blend an image with one channel, testing khaki at low range'''
+    '''Blend an image with one channel, testing khaki at low range
+    Colors of any lightness/chroma should map inputs above threshhold to 0
+    '''
 
     expected = np.uint8([
         [[0, 0, 0]],
@@ -197,7 +201,6 @@ def test_color_khaki_range_low(image_1channel, range_low, color_khaki):
                         colors=[color_khaki],
                         ranges=[range_low])
 
-    print(result)
     np.testing.assert_array_equal(expected, result)
 
 
