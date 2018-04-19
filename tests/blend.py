@@ -3,6 +3,7 @@
 import pytest
 import numpy as np
 from minerva_lib.blend import to_f32
+from minerva_lib.blend import f32_to_bgr
 from minerva_lib.blend import linear_bgr
 
 
@@ -55,6 +56,15 @@ def color_red():
                         'color_blue', 'color_red'])
 def colors(request):
     return request.getfixturevalue(request.param)
+
+
+@pytest.fixture
+def image_float32():
+    return np.float32([
+        [0.0],
+        [256.0 / 65536.0],
+        [65535.0 / 65536.0],
+    ])
 
 
 @pytest.fixture
@@ -188,15 +198,25 @@ def test_channel_color_mismatch(image_2channel, range_all, color_white):
                    ranges=[range_all, range_all])
 
 
-def test_to_f32_full(image_1channel):
+def test_to_f32_full(image_1channel, image_float32):
     ''' Test f32 conversion across full range'''
 
-    expected = np.float32([
-        [0.0],
-        [256.0 / 65536.0],
-        [65535.0 / 65536.0],
-    ])
+    expected = image_float32
+    result = to_f32(image_1channel[0])
 
     # Check to_f32 handles uint16 range
-    result = to_f32(image_1channel[0])
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_to_bgr_full(image_1channel, image_float32):
+    ''' Test f32 conversion across full range'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[1, 1, 1]],
+        [[255, 255, 255]]
+    ])
+    result = f32_to_bgr(image_float32)
+
+    # Check f32_to_bgr handles uint16 range
     np.testing.assert_array_equal(expected, result)
