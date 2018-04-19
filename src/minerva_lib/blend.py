@@ -11,7 +11,7 @@ def to_f32(img):
         dtype_info = np.iinfo(img.dtype)
         assert dtype_info.min is 0
     except (ValueError, AssertionError):
-        raise ValueError("Scaling to [0,1) requires unsigned integers.")
+        raise ValueError('Scaling to 0,1 requires unsigned integers')
 
     one = dtype_info.max + 1
     return np.float32(img / one)

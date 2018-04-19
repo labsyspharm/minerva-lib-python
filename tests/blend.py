@@ -207,6 +207,14 @@ def test_to_f32_full(image_1channel, f32_image_1channel):
     np.testing.assert_array_equal(expected, result)
 
 
+def test_to_f32_float_input(f32_image_1channel):
+    '''Test supplying floating points when unsigned integers are expected'''
+
+    with pytest.raises(ValueError,
+                       match=r'Scaling to 0,1 requires unsigned integers'):
+        to_f32(f32_image_1channel)
+
+
 def test_f32_to_bgr_white(image_1channel, f32_image_1channel):
     ''' Test conversion from f32 to black, gray, white'''
 
