@@ -184,6 +184,23 @@ def test_color_khaki(image_1channel, range_all, color_khaki):
     np.testing.assert_array_equal(expected, result)
 
 
+def test_color_khaki_range_low(image_1channel, range_low, color_khaki):
+    '''Blend an image with one channel, testing khaki at low range'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[140, 230, 240]],
+        [[0, 0, 0]]
+    ])
+
+    result = linear_bgr(image_1channel,
+                        colors=[color_khaki],
+                        ranges=[range_low])
+
+    print(result)
+    np.testing.assert_array_equal(expected, result)
+
+
 def test_multi_channel(image_2channel, range_all, color_blue, color_yellow):
     '''Test blending an image with multiple channels'''
 
