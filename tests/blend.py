@@ -199,24 +199,37 @@ def test_channel_color_mismatch(image_2channel, range_all, color_white):
 
 
 def test_to_f32_full(image_1channel, f32_image_1channel):
-    ''' Test f32 conversion across full range'''
+    ''' Test conversion to f32 across uint16 range'''
 
     expected = f32_image_1channel
     result = to_f32(image_1channel[0])
 
-    # Check to_f32 handles uint16 range
     np.testing.assert_array_equal(expected, result)
 
 
-def test_f32_to_bgr_full(image_1channel, f32_image_1channel):
-    ''' Test f32 conversion across full range'''
+def test_f32_to_bgr_white(image_1channel, f32_image_1channel):
+    ''' Test conversion from f32 to black, gray, white'''
 
     expected = np.uint8([
         [[0, 0, 0]],
         [[1, 1, 1]],
         [[255, 255, 255]]
     ])
+
     result = f32_to_bgr(f32_image_1channel)
 
-    # Check f32_to_bgr handles uint16 range
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_f32_to_bgr_yellow(color_yellow, image_1channel, f32_image_1channel):
+    ''' Test conversion from f32 to yellow gradient'''
+
+    expected = np.uint8([
+        [[0, 0, 0]],
+        [[0, 1, 1]],
+        [[0, 255, 255]]
+    ])
+
+    result = f32_to_bgr(f32_image_1channel, color_yellow)
+
     np.testing.assert_array_equal(expected, result)
