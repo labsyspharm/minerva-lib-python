@@ -188,18 +188,11 @@ def test_channel_color_mismatch(image_2channel, range_all, color_white):
                    ranges=[range_all, range_all])
 
 
-def test_to_f32_full():
+def test_to_f32_full(image_1channel):
     ''' Test f32 conversion across full range
     '''
-    # Sample range from 0 to 65535
-    img_in = np.uint16([
-        [0],
-        [256],
-        [65535],
-    ])
-
     # The same range from 0 to 1
-    img_ok = np.float32([
+    expected = np.float32([
         [0.0],
         [256.0 / 65536.0],
         [65535.0 / 65536.0],
