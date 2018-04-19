@@ -241,3 +241,11 @@ def test_f32_to_bgr_yellow(color_yellow, image_1channel, f32_image_1channel):
     result = f32_to_bgr(f32_image_1channel, color_yellow)
 
     np.testing.assert_array_equal(expected, result)
+
+
+def test_f32_to_bgr_int_input(image_1channel):
+    '''Test supplying floating points when unsigned integers are expected'''
+
+    with pytest.raises(ValueError,
+                       match=r'Color image requires values from 0,1'):
+        f32_to_bgr(image_1channel[0])

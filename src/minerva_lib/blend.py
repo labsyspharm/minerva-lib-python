@@ -24,6 +24,11 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     f_img: float32 image to reshape
     '''
 
+    try:
+        assert np.all((f_img >= 0) & (f_img <= 1))
+    except AssertionError:
+        raise ValueError('Color image requires values from 0,1')
+
     # Give the image a color dimension
     f_vol = f_img[:, :, np.newaxis]
     f_bgr = np.repeat(f_vol, 3, 2) * color
