@@ -59,7 +59,7 @@ def colors(request):
 
 
 @pytest.fixture
-def image_float32():
+def f32_image_1channel():
     return np.float32([
         [0.0],
         [256.0 / 65536.0],
@@ -198,17 +198,17 @@ def test_channel_color_mismatch(image_2channel, range_all, color_white):
                    ranges=[range_all, range_all])
 
 
-def test_to_f32_full(image_1channel, image_float32):
+def test_to_f32_full(image_1channel, f32_image_1channel):
     ''' Test f32 conversion across full range'''
 
-    expected = image_float32
+    expected = f32_image_1channel
     result = to_f32(image_1channel[0])
 
     # Check to_f32 handles uint16 range
     np.testing.assert_array_equal(expected, result)
 
 
-def test_to_bgr_full(image_1channel, image_float32):
+def test_to_bgr_full(image_1channel, f32_image_1channel):
     ''' Test f32 conversion across full range'''
 
     expected = np.uint8([
@@ -216,7 +216,7 @@ def test_to_bgr_full(image_1channel, image_float32):
         [[1, 1, 1]],
         [[255, 255, 255]]
     ])
-    result = f32_to_bgr(image_float32)
+    result = f32_to_bgr(f32_image_1channel)
 
     # Check f32_to_bgr handles uint16 range
     np.testing.assert_array_equal(expected, result)
