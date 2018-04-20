@@ -70,33 +70,33 @@ def linear_bgr(channels):
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    img_buffer = np.zeros(shape_color, dtype=np.float32)
+    image_buffer = np.zeros(shape_color, dtype=np.float32)
 
     # Process all channels
     for channel in channels:
 
-        img = channel['image']
+        image = channel['image']
         color = channel['color']
-        min = channel['min']
-        max = channel['max']
+        min_ = channel['min']
+        max_ = channel['max']
 
         # Scale the dynamic range
-        img_ranged = to_f32(img)
+        img_ranged = to_f32(image)
 
         # Maximum color for this channel
         avg_factor = 1.0 / num_channels
         color_factor = color * avg_factor
 
         # Fraction of full range
-        clip_size = max - min
+        clip_size = max_ - min_
 
         # Apply the range
-        img_ranged[(img_ranged < min) | (img_ranged > max)] = min
-        img_norm = (img_ranged - min) / clip_size
+        img_ranged[(img_ranged < min_) | (img_ranged > max_)] = min_
+        img_norm = (img_ranged - min_) / clip_size
 
         # Add the colored data to the image
         y_shape, x_shape = img_norm.shape
         img_color = f32_to_bgr(img_norm, color_factor)
-        img_buffer[0:y_shape, 0:x_shape] += img_color
+        image_buffer[0:y_shape, 0:x_shape] += img_color
 
-    return np.uint8(img_buffer)
+    return np.uint8(image_buffer)

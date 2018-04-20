@@ -81,7 +81,7 @@ def channel_low_med_high():
 def channel_check():
     return np.uint16([
         [0, 65535],
-        [65535, 0],
+        [65535, 0]
     ])
 
 
@@ -89,7 +89,7 @@ def channel_check():
 def channel_check_inverse():
     return np.uint16([
         [65535, 0],
-        [0, 65535],
+        [0, 65535]
     ])
 
 
@@ -255,6 +255,37 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
     ])
 
     np.testing.assert_array_equal(expected, result)
+
+
+def test_channel_size_mismatch(range_all, color_white):
+    '''Test supplying channels with different dimensions'''
+
+    input_channels = [
+        {
+            'image': np.uint16([0]),
+            'color': color_white,
+            'min': range_all[0],
+            'max': range_all[1]
+        },
+        {
+            'image': np.uint16([[0, 65535]]),
+            'color': color_white,
+            'min': range_all[0],
+            'max': range_all[1]
+        }
+    ]
+
+    with pytest.raises(ValueError,
+                       match=r'All channel images must have equal dimensions'):
+        linear_bgr(input_channels)
+
+
+def test_channel_size_zero():
+    '''Test supplying no channels'''
+
+    with pytest.raises(ValueError,
+                       match=r'At least one channel must be specified'):
+        linear_bgr([])
 
 
 def test_to_f32_full(channel_low_med_high, f32_channel_low_med_high):
