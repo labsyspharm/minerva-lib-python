@@ -38,56 +38,61 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     return (256 * f_bgr).astype(np.uint8)
 
 
-def linear_bgr(all_imgs, colors, ranges):
+def linear_bgr(channels):
     '''Blend all channels given
     Arguments:
-        all_imgs: List of numpy images, one per channel
-        colors: N-channel by b, g, r float32 color
-        ranges: N-channel by min, max float32 range
+        channels: List of dicts of channels to blend with rendering settings:
+            {
+                image: Numpy image data
+                color: N-channel by b, g, r float32 color
+                min: Range minimum, float32 range
+                max: Range maximum, float32 range
+            }
 
     Returns:
         uint8 y by x by 3 color BGR image
     '''
 
-    num_channels = len(all_imgs)
+    # Get the number of channels
+    num_channels = len(channels)
 
-    # Ensure a color per channel has been specified
-    if num_channels != len(colors):
-        raise ValueError('One color per channel must be specified')
+    # Must be at least one channel
+    if num_channels < 1:
+        raise ValueError('At least one channel must be specified')
 
-    # Ensure a range per channel has been specified
-    if num_channels != len(ranges):
-        raise ValueError('One range per channel must be specified')
+    # Ensure that dimensions of all channels are equal
+    shape = channels[0]['image'].shape
+    for channel in channels:
+        if channel['image'].shape != shape:
+            raise ValueError('All channel images must have equal dimensions')
 
-    # Get the shape of the pixels and ensure they are all the same size
-    shape = all_imgs[0].shape
-    for pixels in all_imgs:
-        if pixels.shape != shape:
-            raise ValueError('All channels must have equal pixel dimensions')
-
-    # Shape of 3 color pixels
+    # Shape of 3 color image
     shape_color = shape + (3,)
 
     # Final buffer for blending
     img_buffer = np.zeros(shape_color, dtype=np.float32)
 
     # Process all channels
-    for color, range, pixels in zip(colors, ranges, all_imgs):
+    for channel in channels:
+
+        img = channel['image']
+        color = channel['color']
+        min = channel['min']
+        max = channel['max']
 
         # Scale the dynamic range
-        img_ranged = to_f32(pixels)
+        img_ranged = to_f32(img)
 
         # Maximum color for this channel
         avg_factor = 1.0 / num_channels
         color_factor = color * avg_factor
 
         # Fraction of full range
-        lowest, highest = range
-        clip_size = highest - lowest
+        clip_size = max - min
 
         # Apply the range
-        img_ranged[(img_ranged < lowest) | (img_ranged > highest)] = lowest
-        img_norm = (img_ranged - lowest) / clip_size
+        img_ranged[(img_ranged < min) | (img_ranged > max)] = min
+        img_norm = (img_ranged - min) / clip_size
 
         # Add the colored data to the image
         y_shape, x_shape = img_norm.shape
