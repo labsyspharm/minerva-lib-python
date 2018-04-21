@@ -1,43 +1,6 @@
 import numpy as np
 
 
-def to_f32(img):
-    '''Scale the dynamic range to 0.0 - 1.0
-
-    Arguments:
-    img: An integer image
-    '''
-
-    # No well-defined behavior for decimal values or values less than 0
-    try:
-        dtype_info = np.iinfo(img.dtype)
-        assert dtype_info.min is 0
-    except (ValueError, AssertionError):
-        raise ValueError('Scaling to 0,1 requires unsigned integers')
-
-    one = dtype_info.max
-    return np.float32(img / one)
-
-
-def f32_to_bgr(f_img, color=[1, 1, 1]):
-    '''Reshape into a color image
-
-    Arguments:
-    f_img: float32 image to reshape
-    '''
-
-    # All inputs should be normalized between 0 and 1
-    try:
-        assert np.all((f_img >= 0) & (f_img <= 1))
-    except AssertionError:
-        raise ValueError('Color image requires values from 0,1')
-
-    # Give the image a color dimension
-    f_vol = f_img[:, :, np.newaxis]
-    f_bgr = np.repeat(f_vol, 3, 2) * color
-    return np.round(255 * f_bgr).astype(np.uint8)
-
-
 def linear_bgr(channels):
     '''Blend all channels given
     Arguments:
