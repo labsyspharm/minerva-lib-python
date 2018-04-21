@@ -15,7 +15,7 @@ def to_f32(img):
     except (ValueError, AssertionError):
         raise ValueError('Scaling to 0,1 requires unsigned integers')
 
-    one = dtype_info.max + 1
+    one = dtype_info.max
     return np.float32(img / one)
 
 
@@ -35,7 +35,7 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     # Give the image a color dimension
     f_vol = f_img[:, :, np.newaxis]
     f_bgr = np.repeat(f_vol, 3, 2) * color
-    return (256 * f_bgr).astype(np.uint8)
+    return np.round(255 * f_bgr).astype(np.uint8)
 
 
 def linear_bgr(channels):
