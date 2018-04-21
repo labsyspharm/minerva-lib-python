@@ -66,37 +66,38 @@ def linear_bgr(channels):
         if channel['image'].shape != shape:
             raise ValueError('All channel images must have equal dimensions')
 
-    # Shape of 3 color image
-    shape_color = shape + (3,)
+    # Final output and buffer for blending
+    image_out = np.zeros(shape + (3,), dtype=np.uint8)
+    image_buffer = np.zeros(shape, dtype=np.float32)
 
-    # Final buffer for blending
-    image_buffer = np.zeros(shape_color, dtype=np.float32)
-
-    # Process all channels
+    # threshhold images and normalize colors
     for channel in channels:
-
-        image = channel['image']
         color = channel['color']
-        min_ = channel['min']
-        max_ = channel['max']
+        image = channel['image']
+        input_limit = np.iinfo(image.dtype).max
 
-        # Scale the dynamic range
-        img_ranged = to_f32(image)
+        # Translate min and max to image integers
+        min_ = int(round(channel['min'] * input_limit))
+        max_ = int(round(channel['max'] * input_limit))
+        # Apply normalization to colors
+        color *= 255 / len(channels)
+        color /= (max_ - min_)
 
-        # Maximum color for this channel
-        avg_factor = 1.0 / num_channels
-        color_factor = color * avg_factor
+        # Set all values outside of range to zero
+        image[(image < min_) | (image > max_)] = min_
+        image -= min_
 
-        # Fraction of full range
-        clip_size = max_ - min_
+    # colorize image
+    for color_idx in range(3):
+        for channel in channels:
+            color = channel['color']
+            image = channel['image']
 
-        # Apply the range
-        img_ranged[(img_ranged < min_) | (img_ranged > max_)] = min_
-        img_norm = (img_ranged - min_) / clip_size
+            # Add color for one channel in image buffer
+            image_buffer += image * color[color_idx]
 
-        # Add the colored data to the image
-        y_shape, x_shape = img_norm.shape
-        img_color = f32_to_bgr(img_norm, color_factor)
-        image_buffer[0:y_shape, 0:x_shape] += img_color
+        # Write to output and reset buffer
+        image_out[:, :, color_idx] = np.uint8(np.round(image_buffer))
+        image_buffer *= 0
 
-    return np.uint8(image_buffer)
+    return image_out
