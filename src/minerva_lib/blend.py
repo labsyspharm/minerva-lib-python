@@ -1,41 +1,57 @@
 import numpy as np
 
 
-def to_f32(img):
-    '''Scale the dynamic range to 0.0 - 1.0
-
+def threshhold_image(image, min_, max_):
+    ''' Use only pixel values above min_ below max_
     Arguments:
-    img: An integer image
+        image: ndarray modified in place
+        min_: values here become zero
+        max_: values here become max_ - min_
     '''
-
-    # No well-defined behavior for decimal values or values less than 0
-    try:
-        dtype_info = np.iinfo(img.dtype)
-        assert dtype_info.min is 0
-    except (ValueError, AssertionError):
-        raise ValueError('Scaling to 0,1 requires unsigned integers')
-
-    one = dtype_info.max
-    return np.float32(img / one)
+    # Set all values outside of range to zero
+    image[(image < min_) | (image > max_)] = min_
+    image -= min_
 
 
-def f32_to_bgr(f_img, color=[1, 1, 1]):
-    '''Reshape into a color image
-
+def scale_color(color, range_):
+    ''' Color becomes conversion from inputs
     Arguments:
-    f_img: float32 image to reshape
+        color: b, g, r float array within 0, 1
+        range_: extent of input range
+    Returns:
+        Color conversion from inputs to 0, 255
     '''
+    # Embed conversion within colors
+    return 255 * color / range_
 
-    # All inputs should be normalized between 0 and 1
-    try:
-        assert np.all((f_img >= 0) & (f_img <= 1))
-    except AssertionError:
-        raise ValueError('Color image requires values from 0,1')
 
-    # Give the image a color dimension
-    f_vol = f_img[:, :, np.newaxis]
-    f_bgr = np.repeat(f_vol, 3, 2) * color
-    return np.round(255 * f_bgr).astype(np.uint8)
+def handle_channel(channel):
+    """
+    Arguments:
+        channel: Dict to blend with rendering settings:
+            {
+                image: Numpy image data
+                color: N-channel by b, g, r float32 color
+                min: Range minimum, float32 range
+                max: Range maximum, float32 range
+            }
+
+    Returns:
+        Threshholded image values between min and max
+        Scaled color to convert image to 24-bit BGR
+    """
+    image = channel['image']
+    color = channel['color']
+    input_limit = np.iinfo(image.dtype).max
+
+    # Translate min and max to image integers
+    min_ = int(round(channel['min'] * input_limit))
+    max_ = int(round(channel['max'] * input_limit))
+
+    # Prepare image and color for averaging
+    threshhold_image(image, min_, max_)
+    color_ = scale_color(color, max_ - min_)
+    return (image, color_)
 
 
 def linear_bgr(channels):
@@ -66,37 +82,26 @@ def linear_bgr(channels):
         if channel['image'].shape != shape:
             raise ValueError('All channel images must have equal dimensions')
 
-    # Shape of 3 color image
-    shape_color = shape + (3,)
+    # Final output and buffer for blending
+    image_out = np.zeros(shape + (3,), dtype=np.uint8)
+    image_buffer = np.zeros(shape, dtype=np.float32)
 
-    # Final buffer for blending
-    image_buffer = np.zeros(shape_color, dtype=np.float32)
+    # threshhold images and normalize colors
+    images_colors = map(handle_channel, channels)
+    images_colors = list(images_colors)
+    total = len(images_colors)
 
-    # Process all channels
-    for channel in channels:
+    # colorize image
+    for color_idx in range(3):
+        for image, color in images_colors:
 
-        image = channel['image']
-        color = channel['color']
-        min_ = channel['min']
-        max_ = channel['max']
+            # Add color for one channel in image buffer
+            image_buffer += image * color[color_idx]
 
-        # Scale the dynamic range
-        img_ranged = to_f32(image)
+        np.round(image_buffer/total, out=image_buffer)
 
-        # Maximum color for this channel
-        avg_factor = 1.0 / num_channels
-        color_factor = color * avg_factor
+        # Write to output and reset buffer
+        image_out[:, :, color_idx] = np.uint8(image_buffer)
+        image_buffer *= 0
 
-        # Fraction of full range
-        clip_size = max_ - min_
-
-        # Apply the range
-        img_ranged[(img_ranged < min_) | (img_ranged > max_)] = min_
-        img_norm = (img_ranged - min_) / clip_size
-
-        # Add the colored data to the image
-        y_shape, x_shape = img_norm.shape
-        img_color = f32_to_bgr(img_norm, color_factor)
-        image_buffer[0:y_shape, 0:x_shape] += img_color
-
-    return np.uint8(image_buffer)
+    return image_out
