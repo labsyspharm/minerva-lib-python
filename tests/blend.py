@@ -67,8 +67,8 @@ def colors(request):
 def f32_channel_low_med_high():
     return np.float32([
         [0.0],
-        [256.0 / 65536.0],
-        [65535.0 / 65536.0],
+        [256.0 / 65535.0],
+        [1.0],
     ])
 
 
