@@ -190,12 +190,12 @@ def test_color_red(channel_low_med_high, range_all, color_red):
 
 def test_color_khaki(channel_low_med_high, range_all, color_khaki):
     '''Blend an image with one channel, testing khaki color
-    Colors of any lightness/chroma should map low uint16 input values to 0
+    Colors of any lightness/chroma should map low uint16 input values to 1
     '''
 
     expected = np.uint8([
         [[0, 0, 0]],
-        [[0, 0, 0]],
+        [[1, 1, 1]],
         [[140, 230, 240]]
     ])
 
@@ -234,7 +234,7 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
                        color_blue, color_yellow):
     '''Test blending an image with multiple channels'''
 
-    expected = 127 * np.uint8([
+    expected = 128 * np.uint8([
         [color_yellow, color_blue],
         [color_blue, color_yellow],
     ])
