@@ -2,7 +2,20 @@
 
 import pytest
 import numpy as np
+from minerva_lib.blend import threshhold_image
+from minerva_lib.blend import handle_channel
+from minerva_lib.blend import scale_color
 from minerva_lib.blend import linear_bgr
+
+
+@pytest.fixture
+def half_uint16():
+    return int(32768)
+
+
+@pytest.fixture
+def full_uint16():
+    return int(65535)
 
 
 @pytest.fixture
@@ -80,6 +93,45 @@ def channel_check_inverse():
         [65535, 0],
         [0, 65535]
     ])
+
+
+def test_scale_color(color_white, half_uint16, full_uint16):
+    '''Make color into conversion factor from uint16 to uint8 bgr'''
+
+    expected = np.float32([255, 255, 255]) / 32767
+
+    result = scale_color(color_white, full_uint16 - half_uint16)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_threshhold_image(channel_low_med_high, half_uint16, full_uint16):
+    '''Threshhold image within upper half of the unsigned 16-bit range'''
+
+    expected = np.uint16([[0], [0], [32767]])
+
+    threshhold_image(channel_low_med_high, half_uint16, full_uint16)
+
+    np.testing.assert_array_equal(expected, channel_low_med_high)
+
+
+def test_handle_channel(channel_low_med_high, color_white, range_high):
+    '''Extract scaled color and threshholded image from channel dictionary'''
+
+    expected = (
+        np.uint16([[0], [0], [32767]]),
+        np.float32([255, 255, 255]) / 32767
+    )
+
+    result = handle_channel({
+        'image': channel_low_med_high,
+        'color': color_white,
+        'min': range_high[0],
+        'max': range_high[1]
+    })
+
+    np.testing.assert_array_equal(expected[0], result[0])
+    np.testing.assert_array_equal(expected[1], result[1])
 
 
 def test_range_all(channel_low_med_high, color_white, range_all):
