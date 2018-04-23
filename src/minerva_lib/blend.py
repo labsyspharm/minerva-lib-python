@@ -25,7 +25,7 @@ def scale_color(color, range_):
     return 255 * color / range_
 
 
-def read_channel(channel):
+def handle_channel(channel):
     """
     Arguments:
         channel: Dict to blend with rendering settings:
@@ -87,7 +87,7 @@ def linear_bgr(channels):
     image_buffer = np.zeros(shape, dtype=np.float32)
 
     # threshhold images and normalize colors
-    images_colors = map(read_channel, channels)
+    images_colors = map(handle_channel, channels)
     images_colors = list(images_colors)
     total = len(images_colors)
 
