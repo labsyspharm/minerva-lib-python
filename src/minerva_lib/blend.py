@@ -1,4 +1,5 @@
 import numpy as np
+import skimage.exposure
 
 
 def to_f32(img):
@@ -35,7 +36,7 @@ def f32_to_bgr(f_img, color=[1, 1, 1]):
     # Give the image a color dimension
     f_vol = f_img[:, :, np.newaxis]
     f_bgr = np.repeat(f_vol, 3, 2) * color
-    return np.round(255 * f_bgr).astype(np.uint8)
+    return f_bgr
 
 
 def linear_bgr(channels):
@@ -80,23 +81,14 @@ def linear_bgr(channels):
         min_ = channel['min']
         max_ = channel['max']
 
-        # Scale the dynamic range
-        img_ranged = to_f32(image)
-
-        # Maximum color for this channel
-        avg_factor = 1.0 / num_channels
-        color_factor = color * avg_factor
-
-        # Fraction of full range
-        clip_size = max_ - min_
-
-        # Apply the range
-        img_ranged[(img_ranged < min_) | (img_ranged > max_)] = min_
-        img_norm = (img_ranged - min_) / clip_size
+        img_ranged = skimage.img_as_float(image)
+        img_norm = skimage.exposure.rescale_intensity(img_ranged, (min_, max_))
 
         # Add the colored data to the image
         y_shape, x_shape = img_norm.shape
-        img_color = f32_to_bgr(img_norm, color_factor)
+        img_color = f32_to_bgr(img_norm, color)
         image_buffer[0:y_shape, 0:x_shape] += img_color
 
-    return np.uint8(image_buffer)
+    image_buffer = np.clip(image_buffer, 0, 1)
+
+    return skimage.img_as_ubyte(skimage.exposure.adjust_gamma(image_buffer, 1/2.2))
