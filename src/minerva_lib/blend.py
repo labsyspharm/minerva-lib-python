@@ -39,7 +39,7 @@ def linear_rgb(channels):
             }
 
     Returns:
-        float32 y by x by r, g, b gamma-corrected color image within 0, 1
+        float32 y by x by r, g, b color image within 0, 1
     '''
     num_channels = 0
 

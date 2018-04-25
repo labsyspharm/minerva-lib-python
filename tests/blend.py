@@ -234,7 +234,7 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
                        color_blue, color_yellow):
     '''Test blending an image with multiple channels'''
 
-    expected = 0.5 * np.float32([
+    expected = 1.0 * np.float32([
         [color_yellow, color_blue],
         [color_blue, color_yellow],
     ])
