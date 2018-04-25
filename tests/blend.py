@@ -2,9 +2,20 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import to_f32
-from minerva_lib.blend import f32_to_bgr
+from minerva_lib.blend import threshhold_image
+from minerva_lib.blend import handle_channel
+from minerva_lib.blend import scale_color
 from minerva_lib.blend import linear_bgr
+
+
+@pytest.fixture
+def half_uint16():
+    return int(32768)
+
+
+@pytest.fixture
+def full_uint16():
+    return int(65535)
 
 
 @pytest.fixture
@@ -64,15 +75,6 @@ def colors(request):
 
 
 @pytest.fixture
-def f32_channel_low_med_high():
-    return np.float32([
-        [0.0],
-        [256.0 / 65535.0],
-        [1.0],
-    ])
-
-
-@pytest.fixture
 def channel_low_med_high():
     return np.uint16([[0], [256], [65535]])
 
@@ -91,6 +93,45 @@ def channel_check_inverse():
         [65535, 0],
         [0, 65535]
     ])
+
+
+def test_scale_color(color_white, half_uint16, full_uint16):
+    '''Make color into conversion factor from uint16 to uint8 bgr'''
+
+    expected = np.float32([255, 255, 255]) / 32767
+
+    result = scale_color(color_white, full_uint16 - half_uint16)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_threshhold_image(channel_low_med_high, half_uint16, full_uint16):
+    '''Threshhold image within upper half of the unsigned 16-bit range'''
+
+    expected = np.uint16([[0], [0], [32767]])
+
+    threshhold_image(channel_low_med_high, half_uint16, full_uint16)
+
+    np.testing.assert_array_equal(expected, channel_low_med_high)
+
+
+def test_handle_channel(channel_low_med_high, color_white, range_high):
+    '''Extract scaled color and threshholded image from channel dictionary'''
+
+    expected = (
+        np.uint16([[0], [0], [32767]]),
+        np.float32([255, 255, 255]) / 32767
+    )
+
+    result = handle_channel({
+        'image': channel_low_med_high,
+        'color': color_white,
+        'min': range_high[0],
+        'max': range_high[1]
+    })
+
+    np.testing.assert_array_equal(expected[0], result[0])
+    np.testing.assert_array_equal(expected[1], result[1])
 
 
 def test_range_all(channel_low_med_high, color_white, range_all):
@@ -137,7 +178,7 @@ def test_range_low(channel_low_med_high, color_white, range_low):
     expected = np.uint8([
         [[0, 0, 0]],
         [[255, 255, 255]],
-        [[0, 0, 0]]
+        [[255, 255, 255]]
     ])
 
     result = linear_bgr([{
@@ -211,13 +252,13 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
 
 def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     '''Blend an image with one channel, testing khaki at low range
-    Colors of any lightness/chroma should map inputs above threshhold to 0
+    Colors of any lightness/chroma should max out inputs above threshhold
     '''
 
     expected = np.uint8([
         [[0, 0, 0]],
         [[140, 230, 240]],
-        [[0, 0, 0]]
+        [[140, 230, 240]]
     ])
 
     result = linear_bgr([{
@@ -286,57 +327,3 @@ def test_channel_size_zero():
     with pytest.raises(ValueError,
                        match=r'At least one channel must be specified'):
         linear_bgr([])
-
-
-def test_to_f32_full(channel_low_med_high, f32_channel_low_med_high):
-    ''' Test conversion to f32 across uint16 range'''
-
-    expected = f32_channel_low_med_high
-    result = to_f32(channel_low_med_high)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_to_f32_float_input(f32_channel_low_med_high):
-    '''Test supplying floating points when unsigned integers are expected'''
-
-    with pytest.raises(ValueError,
-                       match=r'Scaling to 0,1 requires unsigned integers'):
-        to_f32(f32_channel_low_med_high)
-
-
-def test_f32_to_bgr_white(channel_low_med_high, f32_channel_low_med_high):
-    ''' Test conversion from f32 to black, gray, white'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
-
-    result = f32_to_bgr(f32_channel_low_med_high)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_f32_to_bgr_yellow(color_yellow, channel_low_med_high,
-                           f32_channel_low_med_high):
-    ''' Test conversion from f32 to yellow gradient'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[0, 1, 1]],
-        [[0, 255, 255]]
-    ])
-
-    result = f32_to_bgr(f32_channel_low_med_high, color_yellow)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_f32_to_bgr_int_input(channel_low_med_high):
-    '''Test supplying floating points when unsigned integers are expected'''
-
-    with pytest.raises(ValueError,
-                       match=r'Color image requires values from 0,1'):
-        f32_to_bgr(channel_low_med_high)
