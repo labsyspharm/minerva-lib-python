@@ -29,7 +29,7 @@ def handle_channel(channel):
     return f32_image, channel['color']
 
 
-def linear_bgr(channels):
+def linear_rgb(channels):
     '''Blend all channels given
     Arguments:
         channels: List of dicts of channels to blend with rendering settings:

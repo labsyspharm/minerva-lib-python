@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from minerva_lib.blend import handle_channel
-from minerva_lib.blend import linear_bgr
+from minerva_lib.blend import linear_rgb
 
 
 @pytest.fixture
@@ -121,7 +121,7 @@ def test_range_high(channel_low_med_high, color_white, range_high):
         [[1, 1, 1]]
     ])
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_white,
         'min': range_high[0],
@@ -140,7 +140,7 @@ def test_range_low(channel_low_med_high, color_white, range_low):
         [[1, 1, 1]]
     ])
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_white,
         'min': range_low[0],
@@ -159,7 +159,7 @@ def test_color_white(channel_low_med_high, range_all, color_white):
         [[65535, 65535, 65535]]
     ]) / 65535
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_white,
         'min': range_all[0],
@@ -178,7 +178,7 @@ def test_color_red(channel_low_med_high, range_all, color_red):
         [[65535, 0, 0]]
     ]) / 65535
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_red,
         'min': range_all[0],
@@ -199,7 +199,7 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
         [color_khaki * 65535]
     ]) / 65535
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_khaki,
         'min': range_all[0],
@@ -220,7 +220,7 @@ def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
         [color_khaki],
     ])
 
-    result = linear_bgr([{
+    result = linear_rgb([{
         'image': channel_low_med_high,
         'color': color_khaki,
         'min': range_low[0],
@@ -239,7 +239,7 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
         [color_blue, color_yellow],
     ])
 
-    result = linear_bgr([
+    result = linear_rgb([
         {
             'image': channel_check,
             'color': color_blue,
@@ -277,7 +277,7 @@ def test_channel_size_mismatch(range_all, color_white):
 
     with pytest.raises(ValueError,
                        match=r'non-broadcastable output operand .*'):
-        linear_bgr(input_channels)
+        linear_rgb(input_channels)
 
 
 def test_channel_size_zero():
@@ -285,4 +285,4 @@ def test_channel_size_zero():
 
     with pytest.raises(ValueError,
                        match=r'At least one channel must be specified'):
-        linear_bgr([])
+        linear_rgb([])
