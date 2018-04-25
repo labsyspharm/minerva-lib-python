@@ -2,19 +2,17 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import threshhold_image
 from minerva_lib.blend import handle_channel
-from minerva_lib.blend import scale_color
 from minerva_lib.blend import linear_bgr
 
 
 @pytest.fixture
-def half_uint16():
-    return int(32768)
+def full_u8():
+    return int(255)
 
 
 @pytest.fixture
-def full_uint16():
+def full_u16():
     return int(65535)
 
 
@@ -29,8 +27,8 @@ def range_high():
 
 
 @pytest.fixture
-def range_low():
-    return np.float32([0, 256. / 65535.])
+def range_low(full_u8, full_u16):
+    return np.float32([0, full_u8 / full_u16])
 
 
 @pytest.fixture(params=['range_all', 'range_high', 'range_low'])
@@ -45,7 +43,7 @@ def color_white():
 
 @pytest.fixture
 def color_yellow():
-    return np.float32([0, 1, 1])
+    return np.float32([1, 1, 0])
 
 
 @pytest.fixture
@@ -55,17 +53,17 @@ def color_green():
 
 @pytest.fixture
 def color_blue():
-    return np.float32([1, 0, 0])
-
-
-@pytest.fixture
-def color_red():
     return np.float32([0, 0, 1])
 
 
 @pytest.fixture
-def color_khaki():
-    return np.float32([140, 230, 240]) / 255.0
+def color_red():
+    return np.float32([1, 0, 0])
+
+
+@pytest.fixture
+def color_khaki(full_u8):
+    return np.float32([240, 230, 140]) / full_u8
 
 
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
@@ -75,52 +73,32 @@ def colors(request):
 
 
 @pytest.fixture
-def channel_low_med_high():
-    return np.uint16([[0], [256], [65535]])
+def channel_low_med_high(full_u8, full_u16):
+    return np.uint16([[0], [full_u8], [full_u16]])
 
 
 @pytest.fixture
-def channel_check():
+def channel_check(full_u16):
     return np.uint16([
-        [0, 65535],
-        [65535, 0]
+        [0, full_u16],
+        [full_u16, 0]
     ])
 
 
 @pytest.fixture
-def channel_check_inverse():
+def channel_check_inverse(full_u16):
     return np.uint16([
-        [65535, 0],
-        [0, 65535]
+        [full_u16, 0],
+        [0, full_u16]
     ])
-
-
-def test_scale_color(color_white, half_uint16, full_uint16):
-    '''Make color into conversion factor from uint16 to uint8 bgr'''
-
-    expected = np.float32([255, 255, 255]) / 32767
-
-    result = scale_color(color_white, full_uint16 - half_uint16)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_threshhold_image(channel_low_med_high, half_uint16, full_uint16):
-    '''Threshhold image within upper half of the unsigned 16-bit range'''
-
-    expected = np.uint16([[0], [0], [32767]])
-
-    threshhold_image(channel_low_med_high, half_uint16, full_uint16)
-
-    np.testing.assert_array_equal(expected, channel_low_med_high)
 
 
 def test_handle_channel(channel_low_med_high, color_white, range_high):
     '''Extract scaled color and threshholded image from channel dictionary'''
 
     expected = (
-        np.uint16([[0], [0], [32767]]),
-        np.float32([255, 255, 255]) / 32767
+        np.float32([[0], [0], [1]]),
+        np.float32([1, 1, 1])
     )
 
     result = handle_channel({
@@ -134,32 +112,13 @@ def test_handle_channel(channel_low_med_high, color_white, range_high):
     np.testing.assert_array_equal(expected[1], result[1])
 
 
-def test_range_all(channel_low_med_high, color_white, range_all):
-    '''Blend an image with one channel, testing full range'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
-
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
-
-    np.testing.assert_array_equal(expected, result)
-
-
 def test_range_high(channel_low_med_high, color_white, range_high):
     '''Blend an image with one channel, testing high range'''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
         [[0, 0, 0]],
-        [[255, 255, 255]]
+        [[1, 1, 1]]
     ])
 
     result = linear_bgr([{
@@ -175,10 +134,10 @@ def test_range_high(channel_low_med_high, color_white, range_high):
 def test_range_low(channel_low_med_high, color_white, range_low):
     '''Blend an image with one channel, testing low range'''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
-        [[255, 255, 255]],
-        [[255, 255, 255]]
+        [[1, 1, 1]],
+        [[1, 1, 1]]
     ])
 
     result = linear_bgr([{
@@ -194,11 +153,11 @@ def test_range_low(channel_low_med_high, color_white, range_low):
 def test_color_white(channel_low_med_high, range_all, color_white):
     '''Blend an image with one channel, testing white color'''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
+        [[255, 255, 255]],
+        [[65535, 65535, 65535]]
+    ]) / 65535
 
     result = linear_bgr([{
         'image': channel_low_med_high,
@@ -213,11 +172,11 @@ def test_color_white(channel_low_med_high, range_all, color_white):
 def test_color_red(channel_low_med_high, range_all, color_red):
     '''Blend an image with one channel, testing red color'''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
-        [[0, 0, 1]],
-        [[0, 0, 255]]
-    ])
+        [[255, 0, 0]],
+        [[65535, 0, 0]]
+    ]) / 65535
 
     result = linear_bgr([{
         'image': channel_low_med_high,
@@ -231,14 +190,14 @@ def test_color_red(channel_low_med_high, range_all, color_red):
 
 def test_color_khaki(channel_low_med_high, range_all, color_khaki):
     '''Blend an image with one channel, testing khaki color
-    Colors of any lightness/chroma should map low uint16 input values to 1
+    Colors of any lightness/chroma should correctly normalize
     '''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[140, 230, 240]]
-    ])
+        [color_khaki * 255],
+        [color_khaki * 65535]
+    ]) / 65535
 
     result = linear_bgr([{
         'image': channel_low_med_high,
@@ -252,13 +211,13 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
 
 def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     '''Blend an image with one channel, testing khaki at low range
-    Colors of any lightness/chroma should max out inputs above threshhold
+    Colors of any lightness/chroma should set all over max to 1
     '''
 
-    expected = np.uint8([
+    expected = np.float32([
         [[0, 0, 0]],
-        [[140, 230, 240]],
-        [[140, 230, 240]]
+        [color_khaki],
+        [color_khaki],
     ])
 
     result = linear_bgr([{
@@ -275,7 +234,7 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
                        color_blue, color_yellow):
     '''Test blending an image with multiple channels'''
 
-    expected = 128 * np.uint8([
+    expected = 0.5 * np.float32([
         [color_yellow, color_blue],
         [color_blue, color_yellow],
     ])
@@ -303,7 +262,7 @@ def test_channel_size_mismatch(range_all, color_white):
 
     input_channels = [
         {
-            'image': np.uint16([0]),
+            'image': np.uint16([[0]]),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
@@ -317,7 +276,7 @@ def test_channel_size_mismatch(range_all, color_white):
     ]
 
     with pytest.raises(ValueError,
-                       match=r'All channel images must have equal dimensions'):
+                       match=r'non-broadcastable output operand .*'):
         linear_bgr(input_channels)
 
 
