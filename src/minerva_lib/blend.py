@@ -9,7 +9,7 @@ def threshhold_image(image, min_, max_):
         max_: values here become max_ - min_
     '''
     # Set all values outside of range to zero
-    image[(image < min_) | (image > max_)] = min_
+    np.clip(image, min_, max_, out=image)
     image -= min_
 
 
