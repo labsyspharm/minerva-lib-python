@@ -178,7 +178,7 @@ def test_range_low(channel_low_med_high, color_white, range_low):
     expected = np.uint8([
         [[0, 0, 0]],
         [[255, 255, 255]],
-        [[0, 0, 0]]
+        [[255, 255, 255]]
     ])
 
     result = linear_bgr([{
@@ -252,13 +252,13 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
 
 def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     '''Blend an image with one channel, testing khaki at low range
-    Colors of any lightness/chroma should map inputs above threshhold to 0
+    Colors of any lightness/chroma should max out inputs above threshhold
     '''
 
     expected = np.uint8([
         [[0, 0, 0]],
         [[140, 230, 240]],
-        [[0, 0, 0]]
+        [[140, 230, 240]]
     ])
 
     result = linear_bgr([{
