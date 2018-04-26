@@ -16,14 +16,11 @@ def handle_channel(channel):
         Threshholded float32 image normalzied within 0, 1
         r, g, b float32 array color within 0, 1
     '''
-    image = channel['image']
-    min_ = channel['min']
-    max_ = channel['max']
+    f32_range = (channel['min'], channel['max'])
+    f32_image = skimage.img_as_float(channel['image'])
 
-    # Return image for additive blending
-    f32_image = skimage.img_as_float(image)
-    f32_image = skimage.exposure.rescale_intensity(f32_image, (min_, max_))
-
+    # Return rescaled image and color for additive blending
+    f32_image = skimage.exposure.rescale_intensity(f32_image, f32_range)
     return f32_image, channel['color']
 
 
