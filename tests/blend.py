@@ -18,17 +18,17 @@ def full_u16():
 
 @pytest.fixture
 def range_all():
-    return np.float32([0, 1])
+    return np.array([0, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def range_high():
-    return np.float32([0.5, 1])
+    return np.array([0.5, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def range_low(full_u8, full_u16):
-    return np.float32([0, full_u8 / full_u16])
+    return np.array([0, full_u8 / full_u16], dtype=np.float32)
 
 
 @pytest.fixture(params=['range_all', 'range_high', 'range_low'])
@@ -38,32 +38,32 @@ def ranges(request):
 
 @pytest.fixture
 def color_white():
-    return np.float32([1, 1, 1])
+    return np.array([1, 1, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def color_yellow():
-    return np.float32([1, 1, 0])
+    return np.array([1, 1, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_green():
-    return np.float32([0, 1, 0])
+    return np.array([0, 1, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_blue():
-    return np.float32([0, 0, 1])
+    return np.array([0, 0, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def color_red():
-    return np.float32([1, 0, 0])
+    return np.array([1, 0, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_khaki(full_u8):
-    return np.float32([240, 230, 140]) / full_u8
+    return np.array([240, 230, 140], dtype=np.float32) / full_u8
 
 
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
@@ -74,31 +74,31 @@ def colors(request):
 
 @pytest.fixture
 def channel_low_med_high(full_u8, full_u16):
-    return np.uint16([[0], [full_u8], [full_u16]])
+    return np.array([[0], [full_u8], [full_u16]], dtype=np.uint16)
 
 
 @pytest.fixture
 def channel_check(full_u16):
-    return np.uint16([
+    return np.array([
         [0, full_u16],
         [full_u16, 0]
-    ])
+    ], dtype=np.uint16)
 
 
 @pytest.fixture
 def channel_check_inverse(full_u16):
-    return np.uint16([
+    return np.array([
         [full_u16, 0],
         [0, full_u16]
-    ])
+    ], dtype=np.uint16)
 
 
 def test_handle_channel(channel_low_med_high, color_white, range_high):
     '''Extract scaled color and threshholded image from channel dictionary'''
 
     expected = (
-        np.float32([[0], [0], [1]]),
-        np.float32([1, 1, 1])
+        np.array([[0], [0], [1]], dtype=np.float32),
+        np.array([1, 1, 1], dtype=np.float32)
     )
 
     result = handle_channel({
@@ -115,11 +115,11 @@ def test_handle_channel(channel_low_med_high, color_white, range_high):
 def test_range_high(channel_low_med_high, color_white, range_high):
     '''Blend an image with one channel, testing high range'''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [[0, 0, 0]],
         [[1, 1, 1]]
-    ])
+    ], dtype=np.float32)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -134,11 +134,11 @@ def test_range_high(channel_low_med_high, color_white, range_high):
 def test_range_low(channel_low_med_high, color_white, range_low):
     '''Blend an image with one channel, testing low range'''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [[1, 1, 1]],
         [[1, 1, 1]]
-    ])
+    ], dtype=np.float32)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -153,11 +153,11 @@ def test_range_low(channel_low_med_high, color_white, range_low):
 def test_color_white(channel_low_med_high, range_all, color_white):
     '''Blend an image with one channel, testing white color'''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [[255, 255, 255]],
         [[65535, 65535, 65535]]
-    ]) / 65535
+    ], dtype=np.float32) / 65535
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -172,11 +172,11 @@ def test_color_white(channel_low_med_high, range_all, color_white):
 def test_color_red(channel_low_med_high, range_all, color_red):
     '''Blend an image with one channel, testing red color'''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [[255, 0, 0]],
         [[65535, 0, 0]]
-    ]) / 65535
+    ], dtype=np.float32) / 65535
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -193,11 +193,11 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
     Colors of any lightness/chroma should correctly normalize
     '''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [color_khaki * 255],
         [color_khaki * 65535]
-    ]) / 65535
+    ], dtype=np.float32) / 65535
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -214,11 +214,11 @@ def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     Colors of any lightness/chroma should set all over max to 1
     '''
 
-    expected = np.float32([
+    expected = np.array([
         [[0, 0, 0]],
         [color_khaki],
         [color_khaki],
-    ])
+    ], dtype=np.float32)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -234,10 +234,10 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
                        color_blue, color_yellow):
     '''Test blending an image with multiple channels'''
 
-    expected = 1.0 * np.float32([
+    expected = np.array([
         [color_yellow, color_blue],
         [color_blue, color_yellow],
-    ])
+    ], dtype=np.float32)
 
     result = linear_rgb([
         {
@@ -262,13 +262,13 @@ def test_channel_size_mismatch(range_all, color_white):
 
     input_channels = [
         {
-            'image': np.uint16([[0, 0, 0]]),
+            'image': np.array([[0, 0, 0]], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': np.uint16([[0, 65535]]),
+            'image': np.array([[0, 65535]], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]

@@ -8,6 +8,7 @@ def handle_channel(channel):
         channel: Dict to blend with rendering settings:
             {
                 image: Numpy image data
+                color: r, g, b float32 array within 0, 1
                 min: Range minimum, float32 range 0, 1
                 max: Range maximum, float32 range 0, 1
             }
@@ -44,7 +45,7 @@ def linear_rgb(channels):
     for image, color in map(handle_channel, channels):
 
         num_channels += 1
-        if num_channels is 1:
+        if num_channels == 1:
             # Needs image to be 2D ndarray
             out_shape = image.shape + (3,)
 
