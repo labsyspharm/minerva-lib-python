@@ -45,9 +45,8 @@ def linear_rgb(channels):
 
         num_channels += 1
         if num_channels is 1:
-            # Compatible with images, vectors, or single pixels
-            in_shape = iter(image.shape)
-            out_shape = [next(in_shape, i) for i in [1, 1, 3]]
+            # Needs image to be 2D ndarray
+            out_shape = image.shape + (3,)
 
             # Output buffer for blending
             out_buffer = np.zeros(out_shape, dtype=np.float32)

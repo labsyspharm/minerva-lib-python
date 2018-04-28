@@ -262,7 +262,7 @@ def test_channel_size_mismatch(range_all, color_white):
 
     input_channels = [
         {
-            'image': np.uint16([[0]]),
+            'image': np.uint16([[0, 0, 0]]),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
@@ -276,7 +276,7 @@ def test_channel_size_mismatch(range_all, color_white):
     ]
 
     with pytest.raises(ValueError,
-                       match=r'non-broadcastable output operand .*'):
+                       match=r'.*broadcast.*'):
         linear_rgb(input_channels)
 
 
