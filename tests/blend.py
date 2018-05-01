@@ -2,7 +2,8 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import handle_channel
+from minerva_lib.blend import make_rgb
+from minerva_lib.blend import clip_image
 from minerva_lib.blend import linear_rgb
 
 
@@ -73,8 +74,13 @@ def colors(request):
 
 
 @pytest.fixture
-def channel_low_med_high(full_u8, full_u16):
+def u16_low_med_high(full_u8, full_u16):
     return np.array([[0], [full_u8], [full_u16]], dtype=np.uint16)
+
+
+@pytest.fixture
+def f32_low_med_high(full_u8, full_u16):
+    return np.array([[0], [full_u8 / full_u16], [1]], dtype=np.float32)
 
 
 @pytest.fixture
@@ -93,16 +99,35 @@ def channel_check_inverse(full_u16):
     ], dtype=np.uint16)
 
 
-def test_handle_channel(channel_low_med_high, color_white, range_high):
-    '''Extract scaled color and threshholded image from channel dictionary'''
+def test_clip_image_range_all(u16_low_med_high, color_white, range_all):
+    '''Extract high values from image in channel dictionary'''
+
+    expected = (
+        np.array([[0], [255 / 65535], [1]], dtype=np.float32),
+        np.array([1, 1, 1], dtype=np.float32)
+    )
+
+    result = clip_image({
+        'image': u16_low_med_high,
+        'color': color_white,
+        'min': range_all[0],
+        'max': range_all[1]
+    })
+
+    assert np.allclose(expected[0], result[0], 10e-13, 10e-13)
+    np.testing.assert_array_equal(expected[1], result[1])
+
+
+def test_clip_image_range_high(u16_low_med_high, color_white, range_high):
+    '''Extract high values from image in channel dictionary'''
 
     expected = (
         np.array([[0], [0], [1]], dtype=np.float32),
         np.array([1, 1, 1], dtype=np.float32)
     )
 
-    result = handle_channel({
-        'image': channel_low_med_high,
+    result = clip_image({
+        'image': u16_low_med_high,
         'color': color_white,
         'min': range_high[0],
         'max': range_high[1]
@@ -112,84 +137,59 @@ def test_handle_channel(channel_low_med_high, color_white, range_high):
     np.testing.assert_array_equal(expected[1], result[1])
 
 
-def test_range_high(channel_low_med_high, color_white, range_high):
-    '''Blend an image with one channel, testing high range'''
+def test_clip_image_range_low(u16_low_med_high, color_white, range_low):
+    '''Extract low values from image in channel dictionary'''
 
-    expected = np.array([
-        [[0, 0, 0]],
-        [[0, 0, 0]],
-        [[1, 1, 1]]
-    ], dtype=np.float32)
+    expected = (
+        np.array([[0], [1], [1]], dtype=np.float32),
+        np.array([1, 1, 1], dtype=np.float32)
+    )
 
-    result = linear_rgb([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_high[0],
-        'max': range_high[1]
-    }])
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_range_low(channel_low_med_high, color_white, range_low):
-    '''Blend an image with one channel, testing low range'''
-
-    expected = np.array([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[1, 1, 1]]
-    ], dtype=np.float32)
-
-    result = linear_rgb([{
-        'image': channel_low_med_high,
+    result = clip_image({
+        'image': u16_low_med_high,
         'color': color_white,
         'min': range_low[0],
         'max': range_low[1]
-    }])
+    })
 
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_color_white(channel_low_med_high, range_all, color_white):
-    '''Blend an image with one channel, testing white color'''
-
-    expected = np.array([
-        [[0, 0, 0]],
-        [color_white * 255 / 65535],
-        [color_white]
-    ], dtype=np.float32) ** (1 / 2.2)
-
-    result = linear_rgb([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
-
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_array_equal(expected[0], result[0])
+    np.testing.assert_array_equal(expected[1], result[1])
 
 
-def test_color_red(channel_low_med_high, range_all, color_red):
+def test_make_rgb_color_red(f32_low_med_high, color_red):
     '''Blend an image with one channel, testing red color'''
 
     expected = np.array([
         [[0, 0, 0]],
         [[255 / 65535, 0, 0]],
         [[1, 0, 0]]
-    ], dtype=np.float32) ** (1 / 2.2)
+    ], dtype=np.float32)
 
-    result = linear_rgb([{
-        'image': channel_low_med_high,
-        'color': color_red,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
+    result = make_rgb(f32_low_med_high, color_red)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_array_equal(expected[:, :, 0], next(result))
+    np.testing.assert_array_equal(expected[:, :, 1], next(result))
+    np.testing.assert_array_equal(expected[:, :, 2], next(result))
 
 
-def test_color_khaki(channel_low_med_high, range_all, color_khaki):
-    '''Blend an image with one channel, testing khaki color
+def test_make_rgb_color_white(f32_low_med_high, range_all, color_white):
+    '''Blend an image with one channel, testing white color'''
+
+    expected = np.array([
+        [[0, 0, 0]],
+        [color_white * 255 / 65535],
+        [color_white]
+    ], dtype=np.float32)
+
+    result = make_rgb(f32_low_med_high, color_white)
+
+    np.testing.assert_array_equal(expected[:, :, 0], next(result))
+    np.testing.assert_array_equal(expected[:, :, 1], next(result))
+    np.testing.assert_array_equal(expected[:, :, 2], next(result))
+
+
+def test_make_rgb_color_khaki(f32_low_med_high, color_khaki):
+    '''Make an image with one channel, testing khaki color
     Colors of any lightness/chroma should correctly normalize
     '''
 
@@ -197,19 +197,16 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
         [[0, 0, 0]],
         [color_khaki * 255 / 65535],
         [color_khaki]
-    ], dtype=np.float32) ** (1 / 2.2)
+    ], dtype=np.float32)
 
-    result = linear_rgb([{
-        'image': channel_low_med_high,
-        'color': color_khaki,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
+    result = make_rgb(f32_low_med_high, color_khaki)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_array_equal(expected[:, :, 0], next(result))
+    np.testing.assert_array_equal(expected[:, :, 1], next(result))
+    np.testing.assert_array_equal(expected[:, :, 2], next(result))
 
 
-def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
+def test_linear_rgb_khaki_low(u16_low_med_high, range_low, color_khaki):
     '''Blend an image with one channel, testing khaki at low range
     Colors of any lightness/chroma should set all over max to 1
     '''
@@ -221,7 +218,7 @@ def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     ], dtype=np.float32) ** (1 / 2.2)
 
     result = linear_rgb([{
-        'image': channel_low_med_high,
+        'image': u16_low_med_high,
         'color': color_khaki,
         'min': range_low[0],
         'max': range_low[1]
@@ -230,9 +227,9 @@ def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_multi_channel(channel_check, channel_check_inverse, range_all,
-                       color_blue, color_yellow):
-    '''Test blending an image with multiple channels'''
+def test_linear_rgb_two_channel(channel_check, channel_check_inverse,
+                                range_all, color_blue, color_yellow):
+    '''Test blending an image with two channels'''
 
     expected = np.array([
         [color_yellow, color_blue],
@@ -257,7 +254,7 @@ def test_multi_channel(channel_check, channel_check_inverse, range_all,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_channel_size_mismatch(range_all, color_white):
+def test_linear_rgb_size_mismatch(range_all, color_white):
     '''Test supplying channels with different dimensions'''
 
     input_channels = [
@@ -280,7 +277,7 @@ def test_channel_size_mismatch(range_all, color_white):
         linear_rgb(input_channels)
 
 
-def test_channel_size_zero():
+def test_linear_rgb_size_zero():
     '''Test supplying no channels'''
 
     with pytest.raises(ValueError,
