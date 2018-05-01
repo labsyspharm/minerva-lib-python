@@ -103,8 +103,8 @@ def test_clip_image_range_all(u16_low_med_high, color_white, range_all):
     '''Extract high values from image in channel dictionary'''
 
     expected = (
-        np.array([[0], [255 / 65535], [1]], dtype=np.float32),
-        np.array([1, 1, 1], dtype=np.float32)
+        np.array([[0], [255 / 65535], [1]], dtype=np.float64),
+        np.array([1, 1, 1], dtype=np.float64)
     )
 
     result = clip_image({
@@ -114,7 +114,7 @@ def test_clip_image_range_all(u16_low_med_high, color_white, range_all):
         'max': range_all[1]
     })
 
-    assert np.allclose(expected[0], result[0], 10e-13, 10e-13)
+    np.testing.assert_array_equal(expected[0], result[0])
     np.testing.assert_array_equal(expected[1], result[1])
 
 
@@ -122,8 +122,8 @@ def test_clip_image_range_high(u16_low_med_high, color_white, range_high):
     '''Extract high values from image in channel dictionary'''
 
     expected = (
-        np.array([[0], [0], [1]], dtype=np.float32),
-        np.array([1, 1, 1], dtype=np.float32)
+        np.array([[0], [0], [1]], dtype=np.float64),
+        np.array([1, 1, 1], dtype=np.float64)
     )
 
     result = clip_image({
@@ -141,8 +141,8 @@ def test_clip_image_range_low(u16_low_med_high, color_white, range_low):
     '''Extract low values from image in channel dictionary'''
 
     expected = (
-        np.array([[0], [1], [1]], dtype=np.float32),
-        np.array([1, 1, 1], dtype=np.float32)
+        np.array([[0], [1], [1]], dtype=np.float64),
+        np.array([1, 1, 1], dtype=np.float64)
     )
 
     result = clip_image({
