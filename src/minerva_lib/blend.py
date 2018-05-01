@@ -64,4 +64,4 @@ def linear_rgb(channels):
 
     # Return gamma correct image within 0, 1
     np.clip(out_buffer, 0, 1, out=out_buffer)
-    return out_buffer
+    return skimage.exposure.adjust_gamma(out_buffer, 1 / 2.2)
