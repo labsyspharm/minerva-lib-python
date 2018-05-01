@@ -155,9 +155,9 @@ def test_color_white(channel_low_med_high, range_all, color_white):
 
     expected = np.array([
         [[0, 0, 0]],
-        [[255, 255, 255]],
-        [[65535, 65535, 65535]]
-    ], dtype=np.float32) / 65535
+        [color_white * 255 / 65535],
+        [color_white]
+    ], dtype=np.float32) ** (1 / 2.2)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -174,9 +174,9 @@ def test_color_red(channel_low_med_high, range_all, color_red):
 
     expected = np.array([
         [[0, 0, 0]],
-        [[255, 0, 0]],
-        [[65535, 0, 0]]
-    ], dtype=np.float32) / 65535
+        [[255 / 65535, 0, 0]],
+        [[1, 0, 0]]
+    ], dtype=np.float32) ** (1 / 2.2)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -195,9 +195,9 @@ def test_color_khaki(channel_low_med_high, range_all, color_khaki):
 
     expected = np.array([
         [[0, 0, 0]],
-        [color_khaki * 255],
-        [color_khaki * 65535]
-    ], dtype=np.float32) / 65535
+        [color_khaki * 255 / 65535],
+        [color_khaki]
+    ], dtype=np.float32) ** (1 / 2.2)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
@@ -218,7 +218,7 @@ def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
         [[0, 0, 0]],
         [color_khaki],
         [color_khaki],
-    ], dtype=np.float32)
+    ], dtype=np.float32) ** (1 / 2.2)
 
     result = linear_rgb([{
         'image': channel_low_med_high,
