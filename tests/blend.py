@@ -2,9 +2,9 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import make_rgb
+from minerva_lib.blend import composite_channel
 from minerva_lib.blend import clip_image
-from minerva_lib.blend import linear_rgb
+from minerva_lib.blend import composite_channels
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def f32_low_med_high(full_u8, full_u16):
 
 
 @pytest.fixture
-def channel_check(full_u16):
+def channel_checkered(full_u16):
     return np.array([
         [0, full_u16],
         [full_u16, 0]
@@ -92,7 +92,7 @@ def channel_check(full_u16):
 
 
 @pytest.fixture
-def channel_check_inverse(full_u16):
+def channel_checkered_inverse(full_u16):
     return np.array([
         [full_u16, 0],
         [0, full_u16]
@@ -100,7 +100,7 @@ def channel_check_inverse(full_u16):
 
 
 def test_clip_image_range_all(u16_low_med_high, color_white, range_all):
-    '''Extract high values from image in channel dictionary'''
+    '''Extract all values from image in channel dictionary'''
 
     expected = (
         np.array([[0], [255 / 65535], [1]], dtype=np.float64),
@@ -156,7 +156,7 @@ def test_clip_image_range_low(u16_low_med_high, color_white, range_low):
     np.testing.assert_array_equal(expected[1], result[1])
 
 
-def test_make_rgb_color_red(f32_low_med_high, color_red):
+def test_channel_color_red(f32_low_med_high, color_red):
     '''Blend an image with one channel, testing red color'''
 
     expected = np.array([
@@ -165,14 +165,14 @@ def test_make_rgb_color_red(f32_low_med_high, color_red):
         [[1, 0, 0]]
     ], dtype=np.float32)
 
-    result = make_rgb(f32_low_med_high, color_red)
+    result = composite_channel(f32_low_med_high, color_red)
 
     np.testing.assert_array_equal(expected[:, :, 0], next(result))
     np.testing.assert_array_equal(expected[:, :, 1], next(result))
     np.testing.assert_array_equal(expected[:, :, 2], next(result))
 
 
-def test_make_rgb_color_white(f32_low_med_high, range_all, color_white):
+def test_channel_color_white(f32_low_med_high, range_all, color_white):
     '''Blend an image with one channel, testing white color'''
 
     expected = np.array([
@@ -181,16 +181,16 @@ def test_make_rgb_color_white(f32_low_med_high, range_all, color_white):
         [color_white]
     ], dtype=np.float32)
 
-    result = make_rgb(f32_low_med_high, color_white)
+    result = composite_channel(f32_low_med_high, color_white)
 
     np.testing.assert_array_equal(expected[:, :, 0], next(result))
     np.testing.assert_array_equal(expected[:, :, 1], next(result))
     np.testing.assert_array_equal(expected[:, :, 2], next(result))
 
 
-def test_make_rgb_color_khaki(f32_low_med_high, color_khaki):
+def test_channel_color_khaki(f32_low_med_high, color_khaki):
     '''Make an image with one channel, testing khaki color
-    Colors of any lightness/chroma should correctly normalize
+    Ensure any color mappings normalize between 0 and 1
     '''
 
     expected = np.array([
@@ -199,16 +199,16 @@ def test_make_rgb_color_khaki(f32_low_med_high, color_khaki):
         [color_khaki]
     ], dtype=np.float32)
 
-    result = make_rgb(f32_low_med_high, color_khaki)
+    result = composite_channel(f32_low_med_high, color_khaki)
 
     np.testing.assert_array_equal(expected[:, :, 0], next(result))
     np.testing.assert_array_equal(expected[:, :, 1], next(result))
     np.testing.assert_array_equal(expected[:, :, 2], next(result))
 
 
-def test_linear_rgb_khaki_low(u16_low_med_high, range_low, color_khaki):
+def test_channels_khaki_low(u16_low_med_high, range_low, color_khaki):
     '''Blend an image with one channel, testing khaki at low range
-    Colors of any lightness/chroma should set all over max to 1
+    Ensure overly bright values are clipped to 1
     '''
 
     expected = np.array([
@@ -217,7 +217,7 @@ def test_linear_rgb_khaki_low(u16_low_med_high, range_low, color_khaki):
         [color_khaki],
     ], dtype=np.float32) ** (1 / 2.2)
 
-    result = linear_rgb([{
+    result = composite_channels([{
         'image': u16_low_med_high,
         'color': color_khaki,
         'min': range_low[0],
@@ -227,8 +227,8 @@ def test_linear_rgb_khaki_low(u16_low_med_high, range_low, color_khaki):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_linear_rgb_two_channel(channel_check, channel_check_inverse,
-                                range_all, color_blue, color_yellow):
+def test_channels_two_channel(channel_checkered, channel_checkered_inverse,
+                              range_all, color_blue, color_yellow):
     '''Test blending an image with two channels'''
 
     expected = np.array([
@@ -236,15 +236,15 @@ def test_linear_rgb_two_channel(channel_check, channel_check_inverse,
         [color_blue, color_yellow],
     ], dtype=np.float32)
 
-    result = linear_rgb([
+    result = composite_channels([
         {
-            'image': channel_check,
+            'image': channel_checkered,
             'color': color_blue,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': channel_check_inverse,
+            'image': channel_checkered_inverse,
             'color': color_yellow,
             'min': range_all[0],
             'max': range_all[1]
@@ -254,7 +254,7 @@ def test_linear_rgb_two_channel(channel_check, channel_check_inverse,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_linear_rgb_size_mismatch(range_all, color_white):
+def test_channels_size_mismatch(range_all, color_white):
     '''Test supplying channels with different dimensions'''
 
     input_channels = [
@@ -272,14 +272,12 @@ def test_linear_rgb_size_mismatch(range_all, color_white):
         }
     ]
 
-    with pytest.raises(ValueError,
-                       match=r'.*broadcast.*'):
-        linear_rgb(input_channels)
+    with pytest.raises(ValueError):
+        composite_channels(input_channels)
 
 
-def test_linear_rgb_size_zero():
+def test_channels_size_zero():
     '''Test supplying no channels'''
 
-    with pytest.raises(ValueError,
-                       match=r'At least one channel must be specified'):
-        linear_rgb([])
+    with pytest.raises(ValueError):
+        composite_channels([])

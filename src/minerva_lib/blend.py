@@ -27,7 +27,7 @@ def clip_image(channel):
     return f32_image, channel['color']
 
 
-def make_rgb(image, color):
+def composite_channel(image, color):
     ''' Yield 3 image channels for r, g, b
 
     Arguments:
@@ -42,7 +42,7 @@ def make_rgb(image, color):
         yield image * scalar
 
 
-def linear_rgb(channels):
+def composite_channels(channels):
     '''Blend all channels into one normalized image
 
     Arguments:
@@ -73,7 +73,7 @@ def linear_rgb(channels):
             out_buffer = np.zeros(out_shape, dtype=np.float32)
 
         # Add all three channels to output buffer
-        rgb_image = make_rgb(image, color)
+        rgb_image = composite_channel(image, color)
         out_buffer[:, :, 0] += next(rgb_image)
         out_buffer[:, :, 1] += next(rgb_image)
         out_buffer[:, :, 2] += next(rgb_image)
