@@ -6,16 +6,6 @@ from minerva_lib.blend import composite_channel, composite_channels
 
 
 @pytest.fixture
-def full_u8():
-    return 255
-
-
-@pytest.fixture
-def full_u16():
-    return 65535
-
-
-@pytest.fixture
 def range_all():
     return np.array([0, 1], dtype=np.float32)
 
@@ -26,8 +16,8 @@ def range_high():
 
 
 @pytest.fixture
-def range_low(full_u8, full_u16):
-    return np.array([0, full_u8 / full_u16], dtype=np.float32)
+def range_low():
+    return np.array([0, 12345 / 65535], dtype=np.float32)
 
 
 @pytest.fixture(params=['range_all', 'range_high', 'range_low'])
@@ -61,8 +51,8 @@ def color_red():
 
 
 @pytest.fixture
-def color_khaki(full_u8):
-    return np.array([240, 230, 140], dtype=np.float32) / full_u8
+def color_khaki():
+    return np.array([240, 230, 140], dtype=np.float32) / 255
 
 
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
@@ -72,8 +62,8 @@ def colors(request):
 
 
 @pytest.fixture
-def u16_3value_channel(full_u8, full_u16):
-    return np.array([[0], [full_u8], [full_u16]], dtype=np.uint16)
+def u16_3value_channel():
+    return np.array([[0], [12345], [65535]], dtype=np.uint16)
 
 
 @pytest.fixture
@@ -82,18 +72,18 @@ def f32_3value_rgb_buffer():
 
 
 @pytest.fixture
-def u16_checkered_channel(full_u16):
+def u16_checkered_channel():
     return np.array([
-        [0, full_u16],
-        [full_u16, 0]
+        [0, 65535],
+        [65535, 0]
     ], dtype=np.uint16)
 
 
 @pytest.fixture
-def u16_checkered_channel_inverse(full_u16):
+def u16_checkered_channel_inverse():
     return np.array([
-        [full_u16, 0],
-        [0, full_u16]
+        [65535, 0],
+        [0, 65535]
     ], dtype=np.uint16)
 
 
@@ -143,7 +133,7 @@ def test_channel_color_red(u16_3value_channel, color_red, range_all,
 
     expected = np.array([
         [[0, 0, 0]],
-        [[255 / 65535, 0, 0]],
+        [[12345 / 65535, 0, 0]],
         [[1, 0, 0]]
     ], dtype=np.float32)
 
@@ -163,7 +153,7 @@ def test_channel_color_white(u16_3value_channel, color_white, range_all,
 
     expected = np.array([
         [[0, 0, 0]],
-        [color_white * 255 / 65535],
+        [color_white * 12345 / 65535],
         [color_white]
     ], dtype=np.float32)
 
@@ -185,7 +175,7 @@ def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
 
     expected = np.array([
         [[0, 0, 0]],
-        [color_khaki * 255 / 65535],
+        [color_khaki * 12345 / 65535],
         [color_khaki]
     ], dtype=np.float32)
 
