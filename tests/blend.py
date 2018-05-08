@@ -7,12 +7,12 @@ from minerva_lib.blend import composite_channel, composite_channels
 
 @pytest.fixture
 def full_u8():
-    return int(255)
+    return 255
 
 
 @pytest.fixture
 def full_u16():
-    return int(65535)
+    return 65535
 
 
 @pytest.fixture
@@ -72,22 +72,17 @@ def colors(request):
 
 
 @pytest.fixture
-def u16_low_med_high(full_u8, full_u16):
+def u16_3value_channel(full_u8, full_u16):
     return np.array([[0], [full_u8], [full_u16]], dtype=np.uint16)
 
 
 @pytest.fixture
-def f32_low_med_high(full_u8, full_u16):
-    return np.array([[0], [full_u8 / full_u16], [1]], dtype=np.float32)
-
-
-@pytest.fixture
-def f32_buffer():
+def f32_3value_rgb_buffer():
     return np.zeros((3, 1, 3), dtype=np.float32)
 
 
 @pytest.fixture
-def channel_checkered(full_u16):
+def u16_checkered_channel(full_u16):
     return np.array([
         [0, full_u16],
         [full_u16, 0]
@@ -95,15 +90,15 @@ def channel_checkered(full_u16):
 
 
 @pytest.fixture
-def channel_checkered_inverse(full_u16):
+def u16_checkered_channel_inverse(full_u16):
     return np.array([
         [full_u16, 0],
         [0, full_u16]
     ], dtype=np.uint16)
 
 
-def test_channel_range_high(u16_low_med_high, color_white, range_high,
-                            f32_buffer):
+def test_channel_range_high(u16_3value_channel, color_white, range_high,
+                            f32_3value_rgb_buffer):
     '''Extract high values from image in channel dictionary'''
 
     expected = np.array([
@@ -112,8 +107,8 @@ def test_channel_range_high(u16_low_med_high, color_white, range_high,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_white,
         'min': range_high[0],
         'max': range_high[1]
@@ -122,8 +117,8 @@ def test_channel_range_high(u16_low_med_high, color_white, range_high,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_range_low(u16_low_med_high, color_white, range_low,
-                           f32_buffer):
+def test_channel_range_low(u16_3value_channel, color_white, range_low,
+                           f32_3value_rgb_buffer):
     '''Extract low values from image in channel dictionary'''
 
     expected = np.array([
@@ -132,8 +127,8 @@ def test_channel_range_low(u16_low_med_high, color_white, range_low,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_white,
         'min': range_low[0],
         'max': range_low[1]
@@ -142,8 +137,8 @@ def test_channel_range_low(u16_low_med_high, color_white, range_low,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_color_red(u16_low_med_high, color_red, range_all,
-                           f32_buffer):
+def test_channel_color_red(u16_3value_channel, color_red, range_all,
+                           f32_3value_rgb_buffer):
     '''Blend an image with one channel, testing red color'''
 
     expected = np.array([
@@ -152,8 +147,8 @@ def test_channel_color_red(u16_low_med_high, color_red, range_all,
         [[1, 0, 0]]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_red,
         'min': range_all[0],
         'max': range_all[1]
@@ -162,8 +157,8 @@ def test_channel_color_red(u16_low_med_high, color_red, range_all,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_color_white(u16_low_med_high, color_white, range_all,
-                             f32_buffer):
+def test_channel_color_white(u16_3value_channel, color_white, range_all,
+                             f32_3value_rgb_buffer):
     '''Blend an image with one channel, testing white color'''
 
     expected = np.array([
@@ -172,8 +167,8 @@ def test_channel_color_white(u16_low_med_high, color_white, range_all,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_white,
         'min': range_all[0],
         'max': range_all[1]
@@ -182,8 +177,8 @@ def test_channel_color_white(u16_low_med_high, color_white, range_all,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_color_khaki(u16_low_med_high, color_khaki, range_all,
-                             f32_buffer):
+def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
+                             f32_3value_rgb_buffer):
     '''Make an image with one channel, testing khaki color
     Ensure any color mappings normalize between 0 and 1
     '''
@@ -194,8 +189,8 @@ def test_channel_color_khaki(u16_low_med_high, color_khaki, range_all,
         [color_khaki]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_khaki,
         'min': range_all[0],
         'max': range_all[1]
@@ -204,8 +199,8 @@ def test_channel_color_khaki(u16_low_med_high, color_khaki, range_all,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_khaki_low(u16_low_med_high, color_khaki, range_low,
-                           f32_buffer):
+def test_channel_khaki_low(u16_3value_channel, color_khaki, range_low,
+                           f32_3value_rgb_buffer):
     '''Blend an image with one channel, testing khaki at low range
     Ensure overly bright values are clipped to 1
     '''
@@ -216,8 +211,8 @@ def test_channel_khaki_low(u16_low_med_high, color_khaki, range_low,
         [color_khaki],
     ], dtype=np.float32)
 
-    result = composite_channel(f32_buffer, {
-        'image': u16_low_med_high,
+    result = composite_channel(f32_3value_rgb_buffer, {
+        'image': u16_3value_channel,
         'color': color_khaki,
         'min': range_low[0],
         'max': range_low[1]
@@ -226,7 +221,8 @@ def test_channel_khaki_low(u16_low_med_high, color_khaki, range_low,
     np.testing.assert_allclose(expected, result)
 
 
-def test_channels_two_channel(channel_checkered, channel_checkered_inverse,
+def test_channels_two_channel(u16_checkered_channel,
+                              u16_checkered_channel_inverse,
                               color_blue, color_yellow, range_all):
     '''Test blending an image with two channels'''
 
@@ -237,13 +233,13 @@ def test_channels_two_channel(channel_checkered, channel_checkered_inverse,
 
     result = composite_channels([
         {
-            'image': channel_checkered,
+            'image': u16_checkered_channel,
             'color': color_blue,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': channel_checkered_inverse,
+            'image': u16_checkered_channel_inverse,
             'color': color_yellow,
             'min': range_all[0],
             'max': range_all[1]
