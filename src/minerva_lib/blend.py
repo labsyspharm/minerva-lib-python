@@ -2,36 +2,35 @@ import numpy as np
 import skimage.exposure
 
 
-def composite_channel(in_array, channel, out_array=None):
+def composite_channel(a, image, color, range_min, range_max, out=None):
     ''' Yield 3 image channels for r, g, b
 
     Arguments:
-        in_array: Previously composited 2D image
-        channel: Channel to add to newly composited 2D image
-            {
-                image: Numpy 2D image data
-                color: r, g, b float32 array within 0, 1
-                min: Range minimum, float32 range 0, 1
-                max: Range maximum, float32 range 0, 1
-            }
-        out_array: Location of newly composited 2D image
+        a: Previously composited 2D image
+        image: Numpy 2D image data of any type
+        color: Color as r, g, b float32 array within 0, 1
+        range_min: Threshhold range minimum, float32 within 0, 1
+        range_max: Threshhold range maximum, float32 within 0, 1
+        out: Optional output array in which to place the result. To update\
+ a destructively, pass the same array to a and out.
 
     Returns:
-        Newly composited 2D image stored in out_array if given
+        An array with the same shape as a containing the composited image.\
+ If an output array is specified, a reference to out is returned.
     '''
-    if out_array is None:
-        out_array = in_array.copy()
+    if out is None:
+        out = a.copy()
 
     # Rescale the new channel to a float64 between 0 and 1
-    f64_range = (channel['min'], channel['max'])
-    f64_image = skimage.img_as_float(channel['image'])
+    f64_range = (range_min, range_max)
+    f64_image = skimage.img_as_float(image)
     f64_image = skimage.exposure.rescale_intensity(f64_image, f64_range)
 
     # Colorize and add the new channel to composite image
-    for i, component in enumerate(channel['color']):
-        out_array[:, :, i] += f64_image * component
+    for i, component in enumerate(color):
+        out[:, :, i] += f64_image * component
 
-    return out_array
+    return out
 
 
 def composite_channels(channels):
@@ -40,14 +39,15 @@ def composite_channels(channels):
     Arguments:
         channels: List of dicts of channels to blend with rendering settings:
             {
-                image: Numpy image data
-                color: r, g, b float32 array within 0, 1
-                min: Range minimum, float32 range 0, 1
-                max: Range maximum, float32 range 0, 1
+                image: Numpy 2D image data of any type
+                color: Color as r, g, b float32 array within 0, 1
+                min: Threshhold range minimum, float32 within 0, 1
+                max: Threshhold range maximum, float32 within 0, 1
             }
 
     Returns:
-        float32 y by x by r, g, b color image within 0, 1
+        An r, g, b float32 color image. Each color component has the same \
+shape as each image in channels with color component values within 0, 1.
     '''
 
     num_channels = len(channels)
@@ -72,7 +72,8 @@ def composite_channels(channels):
     for channel in channels:
 
         # Add all three channels to output buffer
-        out_buffer = composite_channel(out_buffer, channel, out_buffer)
+        args = map(channel.get, ['image', 'color', 'min', 'max'])
+        out_buffer = composite_channel(out_buffer, *args, out=out_buffer)
 
     # Return gamma correct image within 0, 1
     np.clip(out_buffer, 0, 1, out=out_buffer)

@@ -97,12 +97,8 @@ def test_channel_range_high(u16_3value_channel, color_white, range_high,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_white,
-        'min': range_high[0],
-        'max': range_high[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_high)
 
     np.testing.assert_allclose(expected, result)
 
@@ -117,12 +113,8 @@ def test_channel_range_low(u16_3value_channel, color_white, range_low,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_white,
-        'min': range_low[0],
-        'max': range_low[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_low)
 
     np.testing.assert_allclose(expected, result)
 
@@ -137,12 +129,8 @@ def test_channel_color_red(u16_3value_channel, color_red, range_all,
         [[1, 0, 0]]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_red,
-        'min': range_all[0],
-        'max': range_all[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_red, *range_all)
 
     np.testing.assert_allclose(expected, result)
 
@@ -157,12 +145,8 @@ def test_channel_color_white(u16_3value_channel, color_white, range_all,
         [color_white]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_white,
-        'min': range_all[0],
-        'max': range_all[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_all)
 
     np.testing.assert_allclose(expected, result)
 
@@ -179,12 +163,8 @@ def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
         [color_khaki]
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_khaki,
-        'min': range_all[0],
-        'max': range_all[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_khaki, *range_all)
 
     np.testing.assert_allclose(expected, result)
 
@@ -201,12 +181,8 @@ def test_channel_khaki_low(u16_3value_channel, color_khaki, range_low,
         [color_khaki],
     ], dtype=np.float32)
 
-    result = composite_channel(f32_3value_rgb_buffer, {
-        'image': u16_3value_channel,
-        'color': color_khaki,
-        'min': range_low[0],
-        'max': range_low[1]
-    })
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_khaki, *range_low)
 
     np.testing.assert_allclose(expected, result)
 
