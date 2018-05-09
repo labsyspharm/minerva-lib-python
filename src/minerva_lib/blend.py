@@ -3,21 +3,23 @@ import skimage.exposure
 
 
 def composite_channel(a, image, color, range_min, range_max, out=None):
-    ''' Yield 3 image channels for r, g, b
+    ''' Composite given image _a_ with rendered channel _image_
 
-    Arguments:
-        a: Previously composited 2D image
-        image: Numpy 2D image data of any type
+    To update _a_ destructively, pass the same array to _a_ and _out_.
+
+    Args:
+        a: Numpy array to composite
+        image: Numpy array of channel to render and composite
         color: Color as r, g, b float32 array within 0, 1
         range_min: Threshhold range minimum, float32 within 0, 1
         range_max: Threshhold range maximum, float32 within 0, 1
-        out: Optional output array in which to place the result. To update\
- a destructively, pass the same array to a and out.
+        out: Optional output numpy array in which to place the result.
 
     Returns:
-        An array with the same shape as a containing the composited image.\
- If an output array is specified, a reference to out is returned.
+        A numpy array with the same shape as the composited image.
+        If an output array is specified, a reference to _out_ is returned.
     '''
+
     if out is None:
         out = a.copy()
 
