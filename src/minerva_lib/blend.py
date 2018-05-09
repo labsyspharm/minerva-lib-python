@@ -36,10 +36,11 @@ def composite_channel(a, image, color, range_min, range_max, out=None):
 
 
 def composite_channels(channels):
-    '''Blend all channels into one normalized image
+    '''Render each image in _channels_ additively into a composited image
 
-    Arguments:
-        channels: List of dicts of channels to blend with rendering settings:
+    Args:
+        channels: List of dicts for channels to blend. Each dict in the
+            list must have the following rendering settings:
             {
                 image: Numpy 2D image data of any type
                 color: Color as r, g, b float32 array within 0, 1
