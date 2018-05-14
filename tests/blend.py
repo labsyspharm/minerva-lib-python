@@ -151,6 +151,17 @@ def test_channel_color_white(u16_3value_channel, color_white, range_all,
     np.testing.assert_allclose(expected, result)
 
 
+def test_channel_target_is_out(u16_3value_channel, color_white, range_all,
+                               f32_3value_rgb_buffer):
+    '''Blend an image in place by providing an output argument'''
+
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_all,
+                               out=f32_3value_rgb_buffer)
+
+    assert f32_3value_rgb_buffer is result
+
+
 def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
                              f32_3value_rgb_buffer):
     '''Make an image with one channel, testing khaki color

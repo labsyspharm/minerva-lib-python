@@ -2,17 +2,19 @@ import numpy as np
 import skimage.exposure
 
 
-def composite_channel(a, image, color, range_min, range_max, out=None):
-    ''' Composite given image _a_ with rendered channel _image_
+def composite_channel(target, image, color, range_min, range_max, out=None):
+    ''' Render _image_ in pseudocolor and composite into _target_
 
-    To update _a_ destructively, pass the same array to _a_ and _out_.
+    By default, a new output array will be allocated to hold
+    the result of the composition operation. To update _target_
+    in place instead, specify the same array for _target_ and _out_.
 
     Args:
-        a: Numpy array to composite
-        image: Numpy array of channel to render and composite
-        color: Color as r, g, b float32 array within 0, 1
-        range_min: Threshhold range minimum, float32 within 0, 1
-        range_max: Threshhold range maximum, float32 within 0, 1
+        target: Numpy array containing composition target image
+        image: Numpy array of image to render and composite
+        color: Color as r, g, b float array within 0, 1
+        range_min: Threshhold range minimum, float within 0, 1
+        range_max: Threshhold range maximum, float within 0, 1
         out: Optional output numpy array in which to place the result.
 
     Returns:
@@ -21,7 +23,7 @@ def composite_channel(a, image, color, range_min, range_max, out=None):
     '''
 
     if out is None:
-        out = a.copy()
+        out = target.copy()
 
     # Rescale the new channel to a float64 between 0 and 1
     f64_range = (range_min, range_max)
@@ -43,14 +45,15 @@ def composite_channels(channels):
             list must have the following rendering settings:
             {
                 image: Numpy 2D image data of any type
-                color: Color as r, g, b float32 array within 0, 1
-                min: Threshhold range minimum, float32 within 0, 1
-                max: Threshhold range maximum, float32 within 0, 1
+                color: Color as r, g, b float array within 0, 1
+                min: Threshhold range minimum, float within 0, 1
+                max: Threshhold range maximum, float within 0, 1
             }
 
     Returns:
-        An r, g, b float32 color image. Each color component has the same \
-shape as each image in channels with color component values within 0, 1.
+        For input images with shape `(n,m)`,
+        returns a float32 RGB color image with shape
+        `(n,m,3)` and values in the range 0 to 1
     '''
 
     num_channels = len(channels)
