@@ -79,7 +79,7 @@ def composite_channels(channels):
 
         # Add all three channels to output buffer
         args = map(channel.get, ['image', 'color', 'min', 'max'])
-        out_buffer = composite_channel(out_buffer, *args, out=out_buffer)
+        composite_channel(out_buffer, *args, out=out_buffer)
 
     # Return gamma correct image within 0, 1
     np.clip(out_buffer, 0, 1, out=out_buffer)
