@@ -2,24 +2,22 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import to_f32
-from minerva_lib.blend import f32_to_bgr
-from minerva_lib.blend import linear_bgr
+from minerva_lib.blend import composite_channel, composite_channels
 
 
 @pytest.fixture
 def range_all():
-    return np.float32([0, 1])
+    return np.array([0, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def range_high():
-    return np.float32([0.5, 1])
+    return np.array([0.5, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def range_low():
-    return np.float32([0, 256. / 65535.])
+    return np.array([0, 12345 / 65535], dtype=np.float32)
 
 
 @pytest.fixture(params=['range_all', 'range_high', 'range_low'])
@@ -29,32 +27,32 @@ def ranges(request):
 
 @pytest.fixture
 def color_white():
-    return np.float32([1, 1, 1])
+    return np.array([1, 1, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def color_yellow():
-    return np.float32([0, 1, 1])
+    return np.array([1, 1, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_green():
-    return np.float32([0, 1, 0])
+    return np.array([0, 1, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_blue():
-    return np.float32([1, 0, 0])
+    return np.array([0, 0, 1], dtype=np.float32)
 
 
 @pytest.fixture
 def color_red():
-    return np.float32([0, 0, 1])
+    return np.array([1, 0, 0], dtype=np.float32)
 
 
 @pytest.fixture
 def color_khaki():
-    return np.float32([140, 230, 240]) / 255.0
+    return np.array([240, 230, 140], dtype=np.float32) / 255
 
 
 @pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
@@ -64,279 +62,194 @@ def colors(request):
 
 
 @pytest.fixture
-def f32_channel_low_med_high():
-    return np.float32([
-        [0.0],
-        [256.0 / 65535.0],
-        [1.0],
-    ])
+def u16_3value_channel():
+    return np.array([[0], [12345], [65535]], dtype=np.uint16)
 
 
 @pytest.fixture
-def channel_low_med_high():
-    return np.uint16([[0], [256], [65535]])
+def f32_3value_rgb_buffer():
+    return np.zeros((3, 1, 3), dtype=np.float32)
 
 
 @pytest.fixture
-def channel_check():
-    return np.uint16([
+def u16_checkered_channel():
+    return np.array([
         [0, 65535],
         [65535, 0]
-    ])
+    ], dtype=np.uint16)
 
 
 @pytest.fixture
-def channel_check_inverse():
-    return np.uint16([
+def u16_checkered_channel_inverse():
+    return np.array([
         [65535, 0],
         [0, 65535]
-    ])
+    ], dtype=np.uint16)
 
 
-def test_range_all(channel_low_med_high, color_white, range_all):
-    '''Blend an image with one channel, testing full range'''
+def test_channel_range_high(u16_3value_channel, color_white, range_high,
+                            f32_3value_rgb_buffer):
+    '''Extract high values from image in channel dictionary'''
 
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
-
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_range_high(channel_low_med_high, color_white, range_high):
-    '''Blend an image with one channel, testing high range'''
-
-    expected = np.uint8([
+    expected = np.array([
         [[0, 0, 0]],
         [[0, 0, 0]],
-        [[255, 255, 255]]
-    ])
+        [color_white]
+    ], dtype=np.float32)
 
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_high[0],
-        'max': range_high[1]
-    }])
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_high)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_range_low(channel_low_med_high, color_white, range_low):
-    '''Blend an image with one channel, testing low range'''
+def test_channel_range_low(u16_3value_channel, color_white, range_low,
+                           f32_3value_rgb_buffer):
+    '''Extract low values from image in channel dictionary'''
 
-    expected = np.uint8([
+    expected = np.array([
         [[0, 0, 0]],
-        [[255, 255, 255]],
-        [[0, 0, 0]]
-    ])
+        [color_white],
+        [color_white]
+    ], dtype=np.float32)
 
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_low[0],
-        'max': range_low[1]
-    }])
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_low)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_color_white(channel_low_med_high, range_all, color_white):
-    '''Blend an image with one channel, testing white color'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
-
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_white,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_color_red(channel_low_med_high, range_all, color_red):
+def test_channel_color_red(u16_3value_channel, color_red, range_all,
+                           f32_3value_rgb_buffer):
     '''Blend an image with one channel, testing red color'''
 
-    expected = np.uint8([
+    expected = np.array([
         [[0, 0, 0]],
-        [[0, 0, 1]],
-        [[0, 0, 255]]
-    ])
+        [[12345 / 65535, 0, 0]],
+        [[1, 0, 0]]
+    ], dtype=np.float32)
 
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_red,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_red, *range_all)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_color_khaki(channel_low_med_high, range_all, color_khaki):
-    '''Blend an image with one channel, testing khaki color
-    Colors of any lightness/chroma should map low uint16 input values to 1
+def test_channel_color_white(u16_3value_channel, color_white, range_all,
+                             f32_3value_rgb_buffer):
+    '''Blend an image with one channel, testing white color'''
+
+    expected = np.array([
+        [[0, 0, 0]],
+        [color_white * 12345 / 65535],
+        [color_white]
+    ], dtype=np.float32)
+
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_all)
+
+    np.testing.assert_allclose(expected, result)
+
+
+def test_channel_target_is_out(u16_3value_channel, color_white, range_all,
+                               f32_3value_rgb_buffer):
+    '''Blend an image in place by providing an output argument'''
+
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_white, *range_all,
+                               out=f32_3value_rgb_buffer)
+
+    assert f32_3value_rgb_buffer is result
+
+
+def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
+                             f32_3value_rgb_buffer):
+    '''Make an image with one channel, testing khaki color
+    Ensure any color mappings normalize between 0 and 1
     '''
 
-    expected = np.uint8([
+    expected = np.array([
         [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[140, 230, 240]]
-    ])
+        [color_khaki * 12345 / 65535],
+        [color_khaki]
+    ], dtype=np.float32)
 
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_khaki,
-        'min': range_all[0],
-        'max': range_all[1]
-    }])
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_khaki, *range_all)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_color_khaki_range_low(channel_low_med_high, range_low, color_khaki):
+def test_channel_khaki_low(u16_3value_channel, color_khaki, range_low,
+                           f32_3value_rgb_buffer):
     '''Blend an image with one channel, testing khaki at low range
-    Colors of any lightness/chroma should map inputs above threshhold to 0
+    Ensure overly bright values are clipped to 1
     '''
 
-    expected = np.uint8([
+    expected = np.array([
         [[0, 0, 0]],
-        [[140, 230, 240]],
-        [[0, 0, 0]]
-    ])
+        [color_khaki],
+        [color_khaki],
+    ], dtype=np.float32)
 
-    result = linear_bgr([{
-        'image': channel_low_med_high,
-        'color': color_khaki,
-        'min': range_low[0],
-        'max': range_low[1]
-    }])
+    result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
+                               color_khaki, *range_low)
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_multi_channel(channel_check, channel_check_inverse, range_all,
-                       color_blue, color_yellow):
-    '''Test blending an image with multiple channels'''
+def test_channels_two_channel(u16_checkered_channel,
+                              u16_checkered_channel_inverse,
+                              color_blue, color_yellow, range_all):
+    '''Test blending an image with two channels'''
 
-    expected = 128 * np.uint8([
+    expected = np.array([
         [color_yellow, color_blue],
         [color_blue, color_yellow],
-    ])
+    ], dtype=np.float32)
 
-    result = linear_bgr([
+    result = composite_channels([
         {
-            'image': channel_check,
+            'image': u16_checkered_channel,
             'color': color_blue,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': channel_check_inverse,
+            'image': u16_checkered_channel_inverse,
             'color': color_yellow,
             'min': range_all[0],
             'max': range_all[1]
         }
     ])
 
-    np.testing.assert_array_equal(expected, result)
+    np.testing.assert_allclose(expected, result)
 
 
-def test_channel_size_mismatch(range_all, color_white):
+def test_channels_size_mismatch(color_white, range_all):
     '''Test supplying channels with different dimensions'''
 
     input_channels = [
         {
-            'image': np.uint16([0]),
+            'image': np.array([[0, 0, 0]], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': np.uint16([[0, 65535]]),
+            'image': np.array([[0, 65535]], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
         }
     ]
 
-    with pytest.raises(ValueError,
-                       match=r'All channel images must have equal dimensions'):
-        linear_bgr(input_channels)
+    with pytest.raises(ValueError):
+        composite_channels(input_channels)
 
 
-def test_channel_size_zero():
+def test_channels_size_zero():
     '''Test supplying no channels'''
 
-    with pytest.raises(ValueError,
-                       match=r'At least one channel must be specified'):
-        linear_bgr([])
-
-
-def test_to_f32_full(channel_low_med_high, f32_channel_low_med_high):
-    ''' Test conversion to f32 across uint16 range'''
-
-    expected = f32_channel_low_med_high
-    result = to_f32(channel_low_med_high)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_to_f32_float_input(f32_channel_low_med_high):
-    '''Test supplying floating points when unsigned integers are expected'''
-
-    with pytest.raises(ValueError,
-                       match=r'Scaling to 0,1 requires unsigned integers'):
-        to_f32(f32_channel_low_med_high)
-
-
-def test_f32_to_bgr_white(channel_low_med_high, f32_channel_low_med_high):
-    ''' Test conversion from f32 to black, gray, white'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[1, 1, 1]],
-        [[255, 255, 255]]
-    ])
-
-    result = f32_to_bgr(f32_channel_low_med_high)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_f32_to_bgr_yellow(color_yellow, channel_low_med_high,
-                           f32_channel_low_med_high):
-    ''' Test conversion from f32 to yellow gradient'''
-
-    expected = np.uint8([
-        [[0, 0, 0]],
-        [[0, 1, 1]],
-        [[0, 255, 255]]
-    ])
-
-    result = f32_to_bgr(f32_channel_low_med_high, color_yellow)
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_f32_to_bgr_int_input(channel_low_med_high):
-    '''Test supplying floating points when unsigned integers are expected'''
-
-    with pytest.raises(ValueError,
-                       match=r'Color image requires values from 0,1'):
-        f32_to_bgr(channel_low_med_high)
+    with pytest.raises(ValueError):
+        composite_channels([])

@@ -1,59 +1,61 @@
 import numpy as np
+import skimage.exposure
 
 
-def to_f32(img):
-    '''Scale the dynamic range to 0.0 - 1.0
+def composite_channel(target, image, color, range_min, range_max, out=None):
+    ''' Render _image_ in pseudocolor and composite into _target_
 
-    Arguments:
-    img: An integer image
+    By default, a new output array will be allocated to hold
+    the result of the composition operation. To update _target_
+    in place instead, specify the same array for _target_ and _out_.
+
+    Args:
+        target: Numpy array containing composition target image
+        image: Numpy array of image to render and composite
+        color: Color as r, g, b float array within 0, 1
+        range_min: Threshhold range minimum, float within 0, 1
+        range_max: Threshhold range maximum, float within 0, 1
+        out: Optional output numpy array in which to place the result.
+
+    Returns:
+        A numpy array with the same shape as the composited image.
+        If an output array is specified, a reference to _out_ is returned.
     '''
 
-    # No well-defined behavior for decimal values or values less than 0
-    try:
-        dtype_info = np.iinfo(img.dtype)
-        assert dtype_info.min is 0
-    except (ValueError, AssertionError):
-        raise ValueError('Scaling to 0,1 requires unsigned integers')
+    if out is None:
+        out = target.copy()
 
-    one = dtype_info.max
-    return np.float32(img / one)
+    # Rescale the new channel to a float64 between 0 and 1
+    f64_range = (range_min, range_max)
+    f64_image = skimage.img_as_float(image)
+    f64_image = skimage.exposure.rescale_intensity(f64_image, f64_range)
 
+    # Colorize and add the new channel to composite image
+    for i, component in enumerate(color):
+        out[:, :, i] += f64_image * component
 
-def f32_to_bgr(f_img, color=[1, 1, 1]):
-    '''Reshape into a color image
-
-    Arguments:
-    f_img: float32 image to reshape
-    '''
-
-    # All inputs should be normalized between 0 and 1
-    try:
-        assert np.all((f_img >= 0) & (f_img <= 1))
-    except AssertionError:
-        raise ValueError('Color image requires values from 0,1')
-
-    # Give the image a color dimension
-    f_vol = f_img[:, :, np.newaxis]
-    f_bgr = np.repeat(f_vol, 3, 2) * color
-    return np.round(255 * f_bgr).astype(np.uint8)
+    return out
 
 
-def linear_bgr(channels):
-    '''Blend all channels given
-    Arguments:
-        channels: List of dicts of channels to blend with rendering settings:
+def composite_channels(channels):
+    '''Render each image in _channels_ additively into a composited image
+
+    Args:
+        channels: List of dicts for channels to blend. Each dict in the
+            list must have the following rendering settings:
             {
-                image: Numpy image data
-                color: N-channel by b, g, r float32 color
-                min: Range minimum, float32 range
-                max: Range maximum, float32 range
+                image: Numpy 2D image data of any type
+                color: Color as r, g, b float array within 0, 1
+                min: Threshhold range minimum, float within 0, 1
+                max: Threshhold range maximum, float within 0, 1
             }
 
     Returns:
-        uint8 y by x by 3 color BGR image
+        For input images with shape `(n,m)`,
+        returns a float32 RGB color image with shape
+        `(n,m,3)` and values in the range 0 to 1
     '''
 
-    # Get the number of channels
     num_channels = len(channels)
 
     # Must be at least one channel
@@ -70,33 +72,15 @@ def linear_bgr(channels):
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    image_buffer = np.zeros(shape_color, dtype=np.float32)
+    out_buffer = np.zeros(shape_color, dtype=np.float32)
 
-    # Process all channels
+    # rescaled images and normalized colors
     for channel in channels:
 
-        image = channel['image']
-        color = channel['color']
-        min_ = channel['min']
-        max_ = channel['max']
+        # Add all three channels to output buffer
+        args = map(channel.get, ['image', 'color', 'min', 'max'])
+        composite_channel(out_buffer, *args, out=out_buffer)
 
-        # Scale the dynamic range
-        img_ranged = to_f32(image)
-
-        # Maximum color for this channel
-        avg_factor = 1.0 / num_channels
-        color_factor = color * avg_factor
-
-        # Fraction of full range
-        clip_size = max_ - min_
-
-        # Apply the range
-        img_ranged[(img_ranged < min_) | (img_ranged > max_)] = min_
-        img_norm = (img_ranged - min_) / clip_size
-
-        # Add the colored data to the image
-        y_shape, x_shape = img_norm.shape
-        img_color = f32_to_bgr(img_norm, color_factor)
-        image_buffer[0:y_shape, 0:x_shape] += img_color
-
-    return np.uint8(image_buffer)
+    # Return gamma correct image within 0, 1
+    np.clip(out_buffer, 0, 1, out=out_buffer)
+    return skimage.exposure.adjust_gamma(out_buffer, 1 / 2.2)

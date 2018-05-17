@@ -10,7 +10,7 @@ with open(os.path.join(HERE, 'README.md')) as f:
 
 REQUIRES = [
     'numpy>=1.11.1',
-    'opencv-python>=3.3.0.10'
+    'scikit-image>=0.13.1'
 ]
 
 TEST_REQUIRES = [
