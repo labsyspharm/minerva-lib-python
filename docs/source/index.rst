@@ -2,12 +2,12 @@
 
 Minerva-Lib
 =======================
-.. automodule:: minerva-lib
+.. automodule:: minerva_lib
 
 Installation
 -------------
 
-This documentation is for :mod:`minerva-lib`.
+This documentation is for :mod:`minerva_lib`.
 First, download the source code here:
 
 .. code-block:: bash
