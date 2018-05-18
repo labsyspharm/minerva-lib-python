@@ -36,7 +36,7 @@ LICENSE = 'GPL-3.0'
 HOMEPAGE = 'https://github.com/sorgerlab/minerva-lib-python'
 
 setup(
-    name='minerva-lib-python',
+    name='minerva-lib',
     version=VERSION,
     package_dir={'': 'src'},
     description=DESCRIPTION,
