@@ -1,0 +1,156 @@
+body {
+    background-color: #000;
+}
+
+input {
+    background-color: #CCC;
+}
+
+div.body {
+    overflow: auto;
+    background-color: #1A1A1A;
+}
+
+/*
+ * Heading colors and padding
+ */
+div.body > div.section p {
+    white-space: pre-wrap; 
+}
+div.body > div.section h1,
+div.body > div.section h2 {
+    background-color: #000;
+    line-height: 1.4em;
+    position: relative;
+    margin-right: 0.7em;
+    margin-top: 0.7em;
+}
+div.body > div.section h1::after, 
+div.body > div.section h2::after {
+    top: 50%;
+    width: 0;
+    height: 0;
+    left: 100%;
+    content: " ";
+    position: absolute;
+    border: solid transparent;
+    border-color: rgba(0, 0, 0, 0);
+    border-left-color: #000;
+    border-width: 0.7em;
+    margin-top: -0.7em;
+}
+div.body > div.section h1::before,
+div.body > div.section h2::before {
+    top: 0%;
+    left: -30px;
+    content: '';
+    width: 30px;
+    height: 1.4em;
+    position: absolute;
+    background-color: #000;
+}
+
+/*
+ * Fake Heading styles 
+ */
+
+div.body span.h {
+    font-family: 'Raleway', Arial, sans-serif;
+    font-size: 150%;
+}
+
+
+/*
+ * Sidebar
+ */
+
+div.sphinxsidebarwrapper {
+    max-height: 100vh;
+    overflow-y: scroll;
+}
+
+/*
+ * For the code links
+ */
+
+code, code.descclassname, code.descname {
+    background-color: #000;
+    margin: 0px 3px 0px 3px;
+    color: #FFF;
+}
+
+div.viewcode-block,
+div.viewcode-block:target {
+    background-color: #000;
+}
+
+code.xref, code.xref > span.pre {
+    border-bottom: inherit;
+    background-color: #000;
+    color: #FFF;
+}
+
+div.sphinxsidebar a:hover {
+    border-bottom: 1px solid #FFF;
+    color: #FFF;
+}
+
+/*
+ * Responsive font and margins
+ */
+@media screen and (max-width: 875px) {
+    div.body > div.section {
+        font-size: calc(0.666em + 0.334 * ((100vw - 20em)/36));
+    }
+    body, div.body > div.section {
+        padding-right: calc(3px + 27 * ((100vw - 320px)/555));
+        padding-left: calc(3px + 27 * ((100vw - 320px)/555));
+    }
+    /*
+     * Inline Navigation List
+     */
+    div.sphinxsidebar {
+        max-height: calc(6em + 20vh);
+        background-color: #000;
+        overflow-y: auto;
+    }
+    div.sphinxsidebarwrapper *:not(script) {
+        display: inline-block;
+    }
+    div.sphinxsidebarwrapper li > a:after {
+        white-space: pre;
+        content: ', ';
+    }
+    div.sphinxsidebarwrapper li {
+        vertical-align: top;
+    }
+    div.sphinxsidebarwrapper ul {
+        display: block;
+    }
+    /*
+     * Align input, remove h3
+     */
+    div.sphinxsidebarwrapper input {
+        margin: -0.5em 0.5em 0em 0.5em;
+    }
+    div.sphinxsidebarwrapper h3 {
+        display: none;
+    }
+}
+
+/*
+ * For highlighting
+ */
+dt:target, .highlighted {
+    background-color: #000;
+    background: #000;
+    color: #FFF;
+}
+
+/*
+ * For the index pages
+ */
+table.indextable tr.cap {
+    background-color: #000;
+    color: #FFF;
+}
