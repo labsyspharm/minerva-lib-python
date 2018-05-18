@@ -9,7 +9,7 @@ Minerva-Lib
 Installation
 -------------
 
-This documentation is for :mod:`minerva_lib`.
+This documentation is for the python library :mod:`minerva_lib`.
 First, download the source code here:
 
 .. code-block:: bash
@@ -17,7 +17,7 @@ First, download the source code here:
     git clone https://github.com/sorgerlab/minerva-lib-python
     cd minerva-lib-python
 
-Then, install the libarary:
+Then, install the library:
 
 .. code-block:: bash
 
