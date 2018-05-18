@@ -3,7 +3,6 @@
 
 Blend API
 **********
-.. automodule:: minerva_lib.blend
 
-.. autofunction:: composite_channels
-.. autofunction:: composite_channel
+.. automodule:: minerva_lib.blend
+   :members:
