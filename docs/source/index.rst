@@ -4,6 +4,8 @@ Minerva-Lib
 =======================
 .. automodule:: minerva_lib
 
+|minerva_help|
+
 Installation
 -------------
 
