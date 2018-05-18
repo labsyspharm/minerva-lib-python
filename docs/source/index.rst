@@ -14,7 +14,7 @@ First, download the source code here:
 
 .. code-block:: bash
     
-    git clone https://github.com/minerva-lib-python
+    git clone https://github.com/sorgerlab/minerva-lib-python
     cd minerva-lib-python
 
 Then, install the libarary:
