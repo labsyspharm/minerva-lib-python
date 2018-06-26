@@ -137,8 +137,11 @@ def stitch_channels(out, tile_bounds, out_bounds, channels):
     [u0, v0], [u1, v1] = tile_bounds
     subregion = composite[v0:v1, u0:u1]
 
-    # Draw data to output
-    [x0, y0], [x1, y1] = out_bounds
+    # Adjust bounds to actual subregion shape
+    x0, y0 = out_bounds[0]
+    x1, y1 = out_bounds[0] + subregion.shape[:2][::-1]
+
+    # Assign subregion to output
     out[y0:y1, x0:x1] = subregion
 
     return out
