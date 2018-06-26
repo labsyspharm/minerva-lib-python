@@ -106,8 +106,8 @@ def get_out_bounds(indices, tile_size, origin, crop_size):
 
     # Relative to origin
     return [
-        np.maximum(origin, tile_start),
-        np.minimum(tile_end, crop_end)
+        np.maximum(origin, tile_start) - origin,
+        np.minimum(tile_end, crop_end) - origin
     ]
 
 
