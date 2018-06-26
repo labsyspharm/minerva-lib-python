@@ -17,7 +17,7 @@ def get_lod(lods, max_size, width, height):
 
     longest_side = max(width, height)
     lod = np.ceil(np.log2(longest_side / max_size))
-    return min(int(lod), lods - 1)
+    return int(np.clip(lod, 0, lods - 1))
 
 
 def apply_lod(coordinates, lod):
