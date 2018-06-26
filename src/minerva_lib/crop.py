@@ -1,6 +1,40 @@
 import numpy as np
 from .blend import composite_channels
 
+
+def get_lod(lods, max_size, width, height):
+    ''' Calculate the level of detail
+
+    Arguments:
+        lods: Number of available levels of detail
+        max_size: Maximum image extent in x or y
+        width: Extent of image in x
+        height: Extent of image in y
+
+    Returns:
+        Integer power of 2 level of detail
+    '''
+
+    longest_side = max(width, height)
+    lod = np.ceil(np.log2(longest_side / max_size))
+    return min(int(lod), lods - 1)
+
+
+def apply_lod(coordinates, lod):
+    ''' Apply the level of detail to coordinates
+
+    Arguments:
+        coordinates: Coordinates to downscale by _lod_
+        lod: Integer power of 2 level of detail
+
+    Returns:
+        downscaled integer coordinates
+    '''
+
+    scaled_coords = np.array(coordinates) / (2 ** lod)
+    return np.int64(np.floor(scaled_coords))
+
+
 def select_tiles(tile_size, origin, crop_size):
     ''' Select tile coordinates covering crop region
 
