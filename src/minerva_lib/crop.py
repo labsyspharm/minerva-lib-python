@@ -158,7 +158,6 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
         `(height, width, 3)` and values in the range 0 to 1
     '''
 
-    gray = (221 / 255)
     color_full = tuple(crop_size) + (3,)
     color_tile = tuple(tile_size) + (3,)
 
@@ -191,7 +190,8 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
     # State and output
     tree = {}
     temp = {}
-    out = gray * np.ones(color_full)
+    out = np.zeros(color_full)
+    # out = (221 / 255) * np.ones(color_full)
 
     # Make lists of channels or tiles
     for tile in tiles:
