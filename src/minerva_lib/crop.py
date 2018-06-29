@@ -267,20 +267,26 @@ def iterate_tiles(channels, tile_size, origin, crop_size):
             max: Threshhold range maximum, float within 0, 1
         }
     '''
-    for indices in select_tiles(tile_size, origin, crop_size):
 
-        position = get_position(indices, tile_size, origin)
-        subregion = get_subregion(indices, tile_size,
-                                  origin, crop_size)
+    for cid, channel in enumerate(channels):
 
-        for cid, channel in enumerate(channels):
+        (r, g, b) = channel['color']
+        _min = channel['min']
+        _max = channel['max']
+
+        for indices in select_tiles(tile_size, origin, crop_size):
+
+            (i, j) = indices
+            (x0, y0) = get_position(indices, tile_size, origin)
+            (u0, v0), (u1, v1) = get_subregion(indices, tile_size,
+                                               origin, crop_size)
 
             yield {
                 'channel': cid,
-                'indices': indices,
-                'position': position,
-                'subregion': subregion,
-                'min': channel['min'],
-                'max': channel['max'],
-                'color': list(channel['color']),
+                'indices': (i, j),
+                'position': (x0, y0),
+                'subregion': ((u0, v0), (u1, v1)),
+                'color': (r, g, b),
+                'min': _min,
+                'max': _max,
             }
