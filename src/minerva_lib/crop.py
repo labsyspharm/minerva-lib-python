@@ -1,6 +1,7 @@
 import numpy as np
 import skimage.exposure
 from .blend import composite_channel
+from functools import reduce
 
 
 def get_lod(lods, max_size, width, height):
@@ -157,70 +158,82 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
         returns a float32 RGB color image with shape
         `(height, width, 3)` and values in the range 0 to 1
     '''
-
-    color_full = tuple(crop_size) + (3,)
-    color_tile = tuple(tile_size) + (3,)
-
     def stitch(a, t):
-        return stitch_tile(a, t['subregion'],
-                           t['position'], t['image'])
+        return stitch_tile(a, t['subregion'], t['position'], t['image'])
 
     def composite(a, t):
         return composite_channel(a, t['image'], t['color'],
                                  t['min'], t['max'], a)
-    caller = {
-        # Composite before stitching
-        'before': {
-            'idx': lambda t: tuple(t['indices']),
-            'temp': lambda t: {k: t[k] for k in {'subregion', 'position'}},
-            'image': lambda d: np.zeros(color_tile, dtype=np.float32),
-            'first': composite,
-            'second': stitch
-        },
-        # Composite after stitching
-        'after': {
-            'idx': lambda t: t['channel'],
-            'temp': lambda t: {k: t[k] for k in {'color', 'min', 'max'}},
-            'image': lambda d: np.zeros(crop_size, dtype=d),
-            'first': stitch,
-            'second': composite
-        }
-    }[order]
 
-    # State and output
-    tree = {}
-    temp = {}
-    out = np.zeros(color_full)
-    # out = (221 / 255) * np.ones(color_full)
+    class Group():
 
-    # Make lists of channels or tiles
-    for tile in tiles:
+        composite_keys = {'color', 'min', 'max'}
+        stitch_keys = {'position', 'subregion'}
 
-        idx = caller['idx'](tile)
+        if order == 'before':
+            size = tuple(tile_size) + (3,)
+            dtype = staticmethod(lambda t: np.float32)
+            index = staticmethod(lambda t: tuple(t['indices']))
+            first_call = staticmethod(composite)
+            second_call = staticmethod(stitch)
+            in_keys = composite_keys
+            out_keys = stitch_keys
 
-        if idx not in tree:
-            tree[idx] = [tile]
-            dtype = tile['image'].dtype
-            temp[idx] = caller['temp'](tile)
-            temp[idx]['image'] = caller['image'](dtype)
+        if order == 'after':
+            size = tuple(crop_size)
+            dtype = staticmethod(lambda t: t['image'].dtype)
+            index = staticmethod(lambda t: t['channel'])
+            first_call = staticmethod(stitch)
+            second_call = staticmethod(composite)
+            in_keys = stitch_keys
+            out_keys = composite_keys
+
+        def __init__(self, t):
+            d = self.dtype(t)
+            self.buffer = {k: t[k] for k in self.out_keys}
+            self.buffer['image'] = np.zeros(self.size, dtype=d)
+            self.inputs = []
+            self += t
+
+        def __iadd__(self, t):
+            self.inputs += [
+                {k: t[k] for k in self.in_keys | {'image'}}
+            ]
+            return self
+
+    def hash_groups(groups, tile):
+        '''
+        If before: group channels by tile
+        If after: group tiles by channel
+        '''
+
+        idx = Group.index(tile)
+
+        if idx not in groups:
+            groups[idx] = Group(tile)
         else:
-            tree[idx].append(tile)
+            groups[idx] += tile
 
-    # Iterate lists of channels or lists of tiles
-    for idx, items in tree.items():
+        return groups
 
-        # If before: RGBA float tile
-        # If after: Gray integer image
-        temp_item = temp[idx]
+    def combine_groups(out, group):
+        '''
+        If before: Composite to RGBA float tile then stitch
+        If after: Stitch to gray integer image then composite
+        '''
+        for t in group.inputs:
+            group.first_call(group.buffer['image'], t)
+        group.second_call(out, group.buffer)
 
-        # If before: Composite to RGBA float tile
-        # If after: Stitch to gray integer image
-        for item in items:
-            caller['first'](temp_item['image'], item)
+        return out
 
-        # If before: Stitch to RGBA float image
-        # If after: Composite to RGBA float image
-        caller['second'](out, temp_item)
+    # Output
+    out = np.zeros(tuple(crop_size) + (3,))
+
+    # Make groups by channel or by tile
+    groups = reduce(hash_groups, tiles, {}).values()
+    # Stitch and Composite in either order
+    out = reduce(combine_groups, groups, out)
 
     # Return gamma correct image within 0, 1
     np.clip(out, 0, 1, out=out)
