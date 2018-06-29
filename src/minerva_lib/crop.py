@@ -42,7 +42,7 @@ def select_tiles(tile_size, origin, crop_size):
 
     Args:
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin selection
+        origin: x, y coordinates to begin subregion
         crop_size: width, height to select
 
     Returns:
@@ -53,7 +53,7 @@ def select_tiles(tile_size, origin, crop_size):
     fractional_start = start / tile_size
     fractional_end = end / tile_size
 
-    # Round to get indices containing selection
+    # Round to get indices containing subregion
     first_index = np.int64(np.floor(fractional_start))
     last_index = np.int64(np.ceil(fractional_end))
 
@@ -71,7 +71,7 @@ def get_subregion(indices, tile_size, origin, crop_size):
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin selection
+        origin: x, y coordinates to begin subregion
         crop_size: width, height to select
 
     Returns:
@@ -94,7 +94,7 @@ def get_position(indices, tile_size, origin):
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin selection
+        origin: x, y coordinates to begin subregion
 
     Returns:
         The xy position relative to origin
@@ -105,12 +105,12 @@ def get_position(indices, tile_size, origin):
     return np.maximum(origin, tile_start) - origin
 
 
-def stitch_tile(out, selection, position, tile):
+def stitch_tile(out, subregion, position, tile):
     ''' Position image tile into output array
 
     Args:
         out: 2D RGB numpy array to contain stitched channels
-        selection: Start uv, end uv to get from tile
+        subregion: Start uv, end uv to get from tile
         position: Origin of tile when composited in _out_
         tile: 2D numpy array to stitch within _out_
 
@@ -119,16 +119,16 @@ def stitch_tile(out, selection, position, tile):
     '''
 
     # Take subregion from tile
-    [u0, v0], [u1, v1] = selection
-    subregion = tile[v0:v1, u0:u1]
-    shape = np.int64(subregion.shape)
+    [u0, v0], [u1, v1] = subregion
+    subtile = tile[v0:v1, u0:u1]
+    shape = np.int64(subtile.shape)
 
     # Define boundary
     x0, y0 = position
     y1, x1 = [y0, x0] + shape[:2]
 
     # Assign subregion within boundary
-    out[y0:y1, x0:x1] += subregion
+    out[y0:y1, x0:x1] += subtile
 
     return out
 
@@ -222,6 +222,8 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
         If after: Stitch to gray integer image then composite
         '''
         for t in group.inputs:
+            import ipdb
+            ipdb.set_trace()
             group.first_call(group.buffer['image'], t)
         group.second_call(out, group.buffer)
 
@@ -253,7 +255,7 @@ def iterate_tiles(channels, tile_size, origin, crop_size):
                 max: Threshhold range maximum, float within 0, 1
             }
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin selection
+        origin: x, y coordinates to begin subregion
         crop_size: width, height to select
 
     Returns:
