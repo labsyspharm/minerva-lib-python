@@ -222,18 +222,16 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
         If after: Stitch to gray integer image then composite
         '''
         for t in group.inputs:
-            import ipdb
-            ipdb.set_trace()
             group.first_call(group.buffer['image'], t)
         group.second_call(out, group.buffer)
 
         return out
 
-    # Output
+    inputs = [t for t in tiles if t]
     out = np.zeros(tuple(crop_size) + (3,))
 
     # Make groups by channel or by tile
-    groups = reduce(hash_groups, tiles, {}).values()
+    groups = reduce(hash_groups, inputs, {}).values()
     # Stitch and Composite in either order
     out = reduce(combine_groups, groups, out)
 
