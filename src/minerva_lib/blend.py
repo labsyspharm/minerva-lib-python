@@ -1,5 +1,5 @@
 import numpy as np
-import skimage.exposure
+from . import skimage_inline as ski
 
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
@@ -27,8 +27,8 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     # Rescale the new channel to a float64 between 0 and 1
     f64_range = (range_min, range_max)
-    f64_image = skimage.img_as_float(image)
-    f64_image = skimage.exposure.rescale_intensity(f64_image, f64_range)
+    f64_image = ski.img_as_float(image)
+    f64_image = ski.rescale_intensity(f64_image, f64_range)
 
     # Colorize and add the new channel to composite image
     for i, component in enumerate(color):
@@ -83,4 +83,4 @@ def composite_channels(channels):
 
     # Return gamma correct image within 0, 1
     np.clip(out_buffer, 0, 1, out=out_buffer)
-    return skimage.exposure.adjust_gamma(out_buffer, 1 / 2.2)
+    return ski.adjust_gamma(out_buffer, 1 / 2.2)

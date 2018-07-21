@@ -9,8 +9,7 @@ with open(os.path.join(HERE, 'README.md')) as f:
     README = f.read()
 
 REQUIRES = [
-    'numpy>=1.11.1',
-    'scikit-image>=0.13.1'
+    'numpy>=1.11.1'
 ]
 
 TEST_REQUIRES = [
