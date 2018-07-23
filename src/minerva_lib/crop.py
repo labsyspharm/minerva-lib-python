@@ -162,8 +162,9 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
         return stitch_tile(a, t['subregion'], t['position'], t['image'])
 
     def composite(a, t):
-        return composite_channel(a, t['image'], t['color'],
-                                 t['min'], t['max'], a)
+        h, w = t['image'].shape
+        return composite_channel(a[:h, :w], t['image'], t['color'],
+                                 t['min'], t['max'], a[:h, :w])
 
     class Group():
 
