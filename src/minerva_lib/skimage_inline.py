@@ -27,6 +27,8 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# From skikit-image: https://github.com/scikit-image/scikit-image/tree/cc7b116cdbb9f9981d4c7b9cd01a201489e4dc6e # noqa: E501
+
 import numpy as np
 from warnings import warn
 
