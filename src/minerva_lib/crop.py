@@ -271,6 +271,39 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
     return skimage.exposure.adjust_gamma(out, 1 / 2.2)
 
 
+def stitch_tiles_at_level(channels, tile_size, full_size,
+                          level, order='before'):
+    ''' Position all image tiles for all channels
+
+    Args:
+        tiles: Iterator of tiles to blend. Each dict in the
+            list must have the following rendering settings:
+            {
+                channel: Integer channel index
+                indices: Integer i, j tile indices
+                image: Numpy 2D image data of any type
+                color: Color as r, g, b float array within 0, 1
+                min: Threshhold range minimum, float within 0, 1
+                max: Threshhold range maximum, float within 0, 1
+                subregion: The start uv, end uv relative to tile
+                position: The xy position relative to origin
+            }
+        tile_size: width, height of one tile
+        full_size: full-resolution width, height to select
+        level: integer level of detail
+        order: Composite `'before'` or `'after'` stitching
+
+    Returns:
+        For a given `shape` of `(width, height)`,
+        returns a float32 RGB color image with shape
+        `(height, width, 3)` and values in the range 0 to 1
+    '''
+
+    crop_size = apply_lod(full_size, level)
+
+    return stitch_tiles(channels, tile_size, crop_size, order)
+
+
 def iterate_tiles(channels, tile_size, origin, crop_size):
     ''' Return crop settings for channel tiles
 
