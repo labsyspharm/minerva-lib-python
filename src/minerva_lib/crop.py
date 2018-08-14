@@ -1,7 +1,7 @@
-import numpy as np
-import skimage.exposure
-from .blend import composite_channel
 from functools import reduce
+import skimage.exposure
+import numpy as np
+from .blend import composite_channel
 
 
 def get_optimum_pyramid_level(input_shape, level_count, max_size):
@@ -36,18 +36,18 @@ def scale_by_pyramid_level(coordinates, level):
     return np.int64(np.floor(scaled_coords))
 
 
-def select_tiles(tile_size, origin, crop_size):
+def select_tiles(tile_size, crop_origin, crop_size):
     ''' Select tile coordinates covering crop region
 
     Args:
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin subregion
+        crop_origin: x, y coordinates to begin subregion
         crop_size: width, height to select
 
     Returns:
         List of integer i, j tile indices
     '''
-    start = np.array(origin)
+    start = np.array(crop_origin)
     end = start + crop_size
     fractional_start = start / tile_size
     fractional_end = end / tile_size
@@ -64,44 +64,44 @@ def select_tiles(tile_size, origin, crop_size):
     return indices.tolist()
 
 
-def get_subregion(indices, tile_size, origin, crop_size):
+def get_subregion(indices, tile_size, crop_origin, crop_size):
     ''' Define subregion to select from within tile
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin subregion
+        crop_origin: x, y coordinates to begin subregion
         crop_size: width, height to select
 
     Returns:
         start uv, end uv relative to tile
     '''
 
-    crop_end = np.int64(origin) + crop_size
+    crop_end = np.int64(crop_origin) + crop_size
     tile_start = np.int64(indices) * tile_size
     tile_end = tile_start + tile_size
 
     return [
-        np.maximum(origin, tile_start) - tile_start,
+        np.maximum(crop_origin, tile_start) - tile_start,
         np.minimum(tile_end, crop_end) - tile_start
     ]
 
 
-def get_position(indices, tile_size, origin):
-    ''' Define position of cropped tile relative to origin
+def get_position(indices, tile_size, crop_origin):
+    ''' Define position of cropped tile relative to crop_origin
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        origin: x, y coordinates to begin subregion
+        crop_origin: x, y coordinates to begin subregion
 
     Returns:
-        The xy position relative to origin
+        The xy position relative to crop_origin
     '''
 
     tile_start = np.int64(indices) * tile_size
 
-    return np.maximum(origin, tile_start) - origin
+    return np.maximum(crop_origin, tile_start) - crop_origin
 
 
 def stitch_tile(out, subregion, position, tile):
@@ -118,21 +118,21 @@ def stitch_tile(out, subregion, position, tile):
     '''
 
     # Take subregion from tile
-    [u0, v0], [u1, v1] = subregion
-    subtile = tile[v0:v1, u0:u1]
+    [u_0, v_0], [u_1, v_1] = subregion
+    subtile = tile[v_0:v_1, u_0:u_1]
     shape = np.int64(subtile.shape)
 
     # Define boundary
-    x0, y0 = position
-    y1, x1 = [y0, x0] + shape[:2]
+    x_0, y_0 = position
+    y_1, x_1 = [y_0, x_0] + shape[:2]
 
     # Assign subregion within boundary
-    out[y0:y1, x0:x1] += subtile
+    out[y_0:y_1, x_0:x_1] += subtile
 
     return out
 
 
-def stitch_tiles(tiles, tile_size, crop_size):
+def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
     ''' Position all image tiles for all channels
 
     Args:
@@ -145,10 +145,9 @@ def stitch_tiles(tiles, tile_size, crop_size):
                 color: Color as r, g, b float array within 0, 1
                 min: Threshhold range minimum, float within 0, 1
                 max: Threshhold range maximum, float within 0, 1
-                subregion: The start uv, end uv relative to tile
-                position: The xy position relative to origin
             }
         tile_size: width, height of one tile
+        crop_origin: x, y coordinates to begin subregion
         crop_size: The width, height of output image
 
     Returns:
@@ -157,8 +156,8 @@ def stitch_tiles(tiles, tile_size, crop_size):
         `(height, width, 3)` and values in the range 0 to 1
     '''
     inputs = [t for t in tiles if t]
-    stitched = np.zeros(tuple(crop_size) + (3,))
     rgb_tile_size = tuple(tile_size) + (3,)
+    stitched = np.zeros(tuple(crop_size) + (3,))
 
     def composite(tile_hash, tile):
         ''' Composite all tiles with same indices
@@ -168,8 +167,7 @@ def stitch_tiles(tiles, tile_size, crop_size):
 
         if idx not in tile_hash:
             tile_buffer = {
-                'position': tile['position'],
-                'subregion': tile['subregion'],
+                'indices': idx,
                 'image': np.zeros(rgb_tile_size, dtype=np.float32)
             }
             tile_hash[idx] = tile_buffer
@@ -186,8 +184,14 @@ def stitch_tiles(tiles, tile_size, crop_size):
     def stitch(array, tile):
         ''' Stitch tile into an array
         '''
-        return stitch_tile(array, tile['subregion'],
-                           tile['position'], tile['image'])
+
+        image = tile['image']
+        idx = tuple(tile['indices'])
+
+        subregion = get_subregion(idx, tile_size, crop_origin, crop_size)
+        position = get_position(idx, tile_size, crop_origin)
+
+        return stitch_tile(array, subregion, position, image)
 
     # Composite all tiles with same indices and stitch
     composited = reduce(composite, inputs, {}).values()
