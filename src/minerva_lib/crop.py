@@ -4,7 +4,7 @@ import numpy as np
 from .blend import composite_channel
 
 
-def get_optimum_pyramid_level(input_shape, level_count, max_size):
+def get_optimum_pyramid_level(input_shape, level_count, max_size=None):
     ''' Calculate the pyramid level below a maximum
 
     Arguments:
@@ -15,6 +15,9 @@ def get_optimum_pyramid_level(input_shape, level_count, max_size):
     Returns:
         Integer power of 2 pyramid level
     '''
+
+    if max_size is None:
+        return 0
 
     longest_side = max(*input_shape)
     level = np.ceil(np.log2(longest_side / max_size))
