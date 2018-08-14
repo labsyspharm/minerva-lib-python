@@ -4,66 +4,35 @@ from .blend import composite_channel
 from functools import reduce
 
 
-def get_lod(lods, max_size, width, height):
-    ''' Calculate the level of detail below a maximum
+def get_optimum_pyramid_level(input_shape, level_count, max_size):
+    ''' Calculate the pyramid level below a maximum
 
     Arguments:
-        lods: Number of available levels of detail
+        level_count: Number of available pyramid levels
         max_size: Maximum output image extent in x or y
-        width: Full-resolution extent of image in x
-        height: Full-resolution Extent of image in y
+        input_shape: The width, height at pyramid level 0
 
     Returns:
-        Integer power of 2 level of detail
+        Integer power of 2 pyramid level
     '''
 
-    longest_side = max(width, height)
-    lod = np.ceil(np.log2(longest_side / max_size))
-    return int(np.clip(lod, 0, lods - 1))
+    longest_side = max(*input_shape)
+    level = np.ceil(np.log2(longest_side / max_size))
+    return int(np.clip(level, 0, level_count - 1))
 
 
-def get_lod_1tile(lods, tile_size, width, height):
-    ''' Calculate the level of detail to request one tile
-
-    Arguments:
-        lods: Number of available levels of detail
-        tile_size: width, height of one tile
-        width: Full-resolution extent of image in x
-        height: Full-resolution Extent of image in y
-
-    Returns:
-        Integer power of 2 level of detail
-    '''
-    return get_lod(lods, min(*tile_size), width, height)
-
-
-def get_lod_4tiles(lods, tile_size, width, height):
-    ''' Calculate the level of detail for at most four tiles
+def scale_by_pyramid_level(coordinates, level):
+    ''' Apply the pyramid level to coordinates
 
     Arguments:
-        lods: Number of available levels of detail
-        tile_size: width, height of one tile
-        width: Full-resolution extent of image in x
-        height: Full-resolution Extent of image in y
-
-    Returns:
-        Integer power of 2 level of detail
-    '''
-    return get_lod(lods, 2 * min(*tile_size), width, height)
-
-
-def apply_lod(coordinates, lod):
-    ''' Apply the level of detail to coordinates
-
-    Arguments:
-        coordinates: Coordinates to downscale by _lod_
-        lod: Integer power of 2 level of detail
+        coordinates: Coordinates to downscale by _level_
+        level: Integer power of 2 pyramid level
 
     Returns:
         downscaled integer coordinates
     '''
 
-    scaled_coords = np.array(coordinates) / (2 ** lod)
+    scaled_coords = np.array(coordinates) / (2 ** level)
     return np.int64(np.floor(scaled_coords))
 
 
@@ -290,7 +259,7 @@ def stitch_tiles_at_level(channels, tile_size, full_size,
             }
         tile_size: width, height of one tile
         full_size: full-resolution width, height to select
-        level: integer level of detail
+        level: integer power of 2 pyramid level
         order: Composite `'before'` or `'after'` stitching
 
     Returns:
@@ -299,7 +268,7 @@ def stitch_tiles_at_level(channels, tile_size, full_size,
         `(height, width, 3)` and values in the range 0 to 1
     '''
 
-    crop_size = apply_lod(full_size, level)
+    crop_size = scale_by_pyramid_level(full_size, level)
 
     return stitch_tiles(channels, tile_size, crop_size, order)
 
@@ -373,13 +342,13 @@ def list_tiles_at_level(channels, tile_size,
         tile_size: width, height of one tile
         full_origin: full-resolution x, y coordinates to begin subregion
         full_size: full-resolution width, height to select
-        level: integer level of detail
+        level: integer power of 2 pyramid level
 
     Returns:
         An iterator of tiles to render for the given region.
         Each dict in the list has the following settings:
         {
-            level: given level of detail
+            level: given pyramid level
             channel: Integer channel index
             indices: Integer i, j tile indices
             color: Color as r, g, b float array within 0, 1
@@ -388,8 +357,8 @@ def list_tiles_at_level(channels, tile_size,
         }
     '''
 
-    origin = apply_lod(full_origin, level)
-    crop_size = apply_lod(full_size, level)
+    origin = scale_by_pyramid_level(full_origin, level)
+    crop_size = scale_by_pyramid_level(full_size, level)
 
     tiles = iterate_tiles(channels, tile_size, origin, crop_size)
 
