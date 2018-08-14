@@ -132,7 +132,7 @@ def stitch_tile(out, subregion, position, tile):
     return out
 
 
-def stitch_tiles(tiles, tile_size, crop_size, order='before'):
+def stitch_tiles(tiles, tile_size, crop_size):
     ''' Position all image tiles for all channels
 
     Args:
@@ -150,98 +150,55 @@ def stitch_tiles(tiles, tile_size, crop_size, order='before'):
             }
         tile_size: width, height of one tile
         crop_size: The width, height of output image
-        order: Composite `'before'` or `'after'` stitching
 
     Returns:
         For a given `shape` of `(width, height)`,
         returns a float32 RGB color image with shape
         `(height, width, 3)` and values in the range 0 to 1
     '''
-    def stitch(a, t):
-        return stitch_tile(a, t['subregion'], t['position'], t['image'])
-
-    def composite(a, t):
-        h, w = t['image'].shape
-        return composite_channel(a[:h, :w], t['image'], t['color'],
-                                 t['min'], t['max'], a[:h, :w])
-
-    class Group():
-
-        composite_keys = {'color', 'min', 'max'}
-        stitch_keys = {'position', 'subregion'}
-
-        if order == 'before':
-            size = tuple(tile_size) + (3,)
-            dtype = staticmethod(lambda t: np.float32)
-            index = staticmethod(lambda t: tuple(t['indices']))
-            first_call = staticmethod(composite)
-            second_call = staticmethod(stitch)
-            in_keys = composite_keys
-            out_keys = stitch_keys
-
-        if order == 'after':
-            size = tuple(crop_size)
-            dtype = staticmethod(lambda t: t['image'].dtype)
-            index = staticmethod(lambda t: t['channel'])
-            first_call = staticmethod(stitch)
-            second_call = staticmethod(composite)
-            in_keys = stitch_keys
-            out_keys = composite_keys
-
-        def __init__(self, t):
-            d = self.dtype(t)
-            self.buffer = {k: t[k] for k in self.out_keys}
-            self.buffer['image'] = np.zeros(self.size, dtype=d)
-            self.inputs = []
-            self += t
-
-        def __iadd__(self, t):
-            self.inputs += [
-                {k: t[k] for k in self.in_keys | {'image'}}
-            ]
-            return self
-
-    def hash_groups(groups, tile):
-        '''
-        If before: group channels by tile
-        If after: group tiles by channel
-        '''
-
-        idx = Group.index(tile)
-
-        if idx not in groups:
-            groups[idx] = Group(tile)
-        else:
-            groups[idx] += tile
-
-        return groups
-
-    def combine_groups(out, group):
-        '''
-        If before: Composite to RGBA float tile then stitch
-        If after: Stitch to gray integer image then composite
-        '''
-        for t in group.inputs:
-            group.first_call(group.buffer['image'], t)
-        group.second_call(out, group.buffer)
-
-        return out
-
     inputs = [t for t in tiles if t]
-    out = np.zeros(tuple(crop_size) + (3,))
+    stitched = np.zeros(tuple(crop_size) + (3,))
+    rgb_tile_size = tuple(tile_size) + (3,)
 
-    # Make groups by channel or by tile
-    groups = reduce(hash_groups, inputs, {}).values()
-    # Stitch and Composite in either order
-    out = reduce(combine_groups, groups, out)
+    def composite(tile_hash, tile):
+        ''' Composite all tiles with same indices
+        '''
+
+        idx = tuple(tile['indices'])
+
+        if idx not in tile_hash:
+            tile_buffer = {
+                'position': tile['position'],
+                'subregion': tile['subregion'],
+                'image': np.zeros(rgb_tile_size, dtype=np.float32)
+            }
+            tile_hash[idx] = tile_buffer
+
+        tile_h, tile_w = tile['image'].shape
+
+        composite_channel(tile_hash[idx]['image'][:tile_h, :tile_w],
+                          tile['image'], tile['color'],
+                          tile['min'], tile['max'],
+                          tile_hash[idx]['image'][:tile_h, :tile_w])
+
+        return tile_hash
+
+    def stitch(array, tile):
+        ''' Stitch tile into an array
+        '''
+        return stitch_tile(array, tile['subregion'],
+                           tile['position'], tile['image'])
+
+    # Composite all tiles with same indices and stitch
+    composited = reduce(composite, inputs, {}).values()
+    stitched = reduce(stitch, composited, stitched)
 
     # Return gamma correct image within 0, 1
-    np.clip(out, 0, 1, out=out)
-    return skimage.exposure.adjust_gamma(out, 1 / 2.2)
+    np.clip(stitched, 0, 1, out=stitched)
+    return skimage.exposure.adjust_gamma(stitched, 1 / 2.2)
 
 
-def stitch_tiles_at_level(channels, tile_size, full_size,
-                          level, order='before'):
+def stitch_tiles_at_level(channels, tile_size, full_size, level):
     ''' Position all image tiles for all channels
 
     Args:
@@ -260,7 +217,6 @@ def stitch_tiles_at_level(channels, tile_size, full_size,
         tile_size: width, height of one tile
         full_size: full-resolution width, height to select
         level: integer power of 2 pyramid level
-        order: Composite `'before'` or `'after'` stitching
 
     Returns:
         For a given `shape` of `(width, height)`,
@@ -270,7 +226,7 @@ def stitch_tiles_at_level(channels, tile_size, full_size,
 
     crop_size = scale_by_pyramid_level(full_size, level)
 
-    return stitch_tiles(channels, tile_size, crop_size, order)
+    return stitch_tiles(channels, tile_size, crop_size)
 
 
 def iterate_tiles(channels, tile_size, origin, crop_size):
