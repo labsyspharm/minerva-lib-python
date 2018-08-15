@@ -2,14 +2,7 @@
 
 import pytest
 import numpy as np
-from minerva_lib.crop import get_optimum_pyramid_level
 from minerva_lib.crop import scale_image_nearest_neighbor
-from minerva_lib.crop import scale_by_pyramid_level
-from minerva_lib.crop import select_tiles
-from minerva_lib.crop import get_subregion
-from minerva_lib.crop import get_position
-from minerva_lib.crop import stitch_tile
-from minerva_lib.crop import stitch_tiles
 
 
 @pytest.fixture
