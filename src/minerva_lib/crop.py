@@ -15,17 +15,15 @@ def scale_image_nearest_neighbor(source, factor):
         A numpy array with the resized `source`
     '''
 
-    source_shape = source.shape
-
     factors = [factor, factor, 1]
 
-    out_shape = [int(round(a*b)) for a, b in zip(source_shape, factors)]
+    out_shape = [int(round(a * b)) for a, b in zip(source.shape, factors)]
     out_max_x = out_shape[1] - 1
     out_max_y = out_shape[0] - 1
     out = np.zeros(out_shape)
 
-    for source_x in range(0, source_shape[1]):
-        for source_y in range(0, source_shape[0]):
+    for source_x in range(0, source.shape[1]):
+        for source_y in range(0, source.shape[0]):
             out_x = min(int(round(source_x * factor)), out_max_x)
             out_y = min(int(round(source_y * factor)), out_max_y)
             out[out_y, out_x] = source[source_y, source_x]
