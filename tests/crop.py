@@ -1,4 +1,4 @@
-'''Compare blend results with expected output'''
+'''Compare crop results with expected output'''
 
 import pytest
 import numpy as np
