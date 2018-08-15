@@ -1,7 +1,7 @@
 from functools import reduce
-import skimage.exposure
 import numpy as np
 from .blend import composite_channel
+from . import skimage_inline as ski
 
 
 def scale_image_nearest_neighbor(source, factor):
@@ -239,4 +239,4 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
 
     # Return gamma correct image within 0, 1
     np.clip(stitched, 0, 1, out=stitched)
-    return skimage.exposure.adjust_gamma(stitched, 1 / 2.2)
+    return ski.adjust_gamma(stitched, 1 / 2.2)
