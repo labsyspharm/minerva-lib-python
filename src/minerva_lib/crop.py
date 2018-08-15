@@ -4,13 +4,46 @@ import numpy as np
 from .blend import composite_channel
 
 
-def get_optimum_pyramid_level(input_shape, level_count, max_size=None):
+def scale_image_nearest_neighbor(source, factor):
+    ''' Resize an image by a given factor using nearest neighbor pixels
+
+    Arguments:
+        source: A 2D or 3D numpy array to resize
+        factor: The ratio of `out` shape over `source` shape
+
+    Returns:
+        A numpy array with the resized `source`
+    '''
+
+    source_shape = source.shape
+
+    factors = [factor, factor, 1]
+
+    out_shape = [int(round(a*b)) for a, b in zip(source_shape, factors)]
+    out_max_x = out_shape[1] - 1
+    out_max_y = out_shape[0] - 1
+    out = np.zeros(out_shape)
+
+    for source_x in range(0, source_shape[1]):
+        for source_y in range(0, source_shape[0]):
+            out_x = min(int(round(source_x * factor)), out_max_x)
+            out_y = min(int(round(source_y * factor)), out_max_y)
+            out[out_y, out_x] = source[source_y, source_x]
+
+    return out
+
+
+def get_optimum_pyramid_level(input_shape, level_count,
+                              max_size=None, round_up=True):
     ''' Calculate the pyramid level below a maximum
 
     Arguments:
+        input_shape: The width, height at pyramid level 0
         level_count: Number of available pyramid levels
         max_size: Maximum output image extent in x or y
-        input_shape: The width, height at pyramid level 0
+        round_up: Use higher-magnifcation pyramid level contained by
+                  `max_size` if true. Use lower-magnification pyramid
+                  level containing `max_size` if false.
 
     Returns:
         Integer power of 2 pyramid level
@@ -20,7 +53,13 @@ def get_optimum_pyramid_level(input_shape, level_count, max_size=None):
         return 0
 
     longest_side = max(*input_shape)
-    level = np.ceil(np.log2(longest_side / max_size))
+    ratio_log = np.log2(longest_side / max_size)
+
+    if round_up:
+        level = np.ceil(ratio_log)
+    else:
+        level = np.floor(ratio_log)
+
     return int(np.clip(level, 0, level_count - 1))
 
 
