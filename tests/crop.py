@@ -8,6 +8,7 @@ from minerva_lib.crop import scale_by_pyramid_level
 from minerva_lib.crop import select_tiles
 from minerva_lib.crop import get_subregion
 from minerva_lib.crop import get_position
+from minerva_lib.crop import stitch_tile
 
 
 @pytest.fixture
@@ -76,6 +77,14 @@ def tile_size_2x2():
 
 
 @pytest.fixture
+def tile_subregion_2x2():
+    return [
+        [0, 0],
+        [2, 2]
+    ]
+
+
+@pytest.fixture
 def level0_shape_6x6():
     return [6, 6]
 
@@ -108,6 +117,22 @@ def round_up():
 @pytest.fixture
 def round_down():
     return False
+
+
+@pytest.fixture
+def level0_tiles_green_mask():
+    ''' Nine 2x2 pixel tiles, green channel
+    '''
+    return [
+        [
+            np.array([
+                [0, 1],
+                [0, 0]
+            ]),
+            np.zeros([2, 2]),
+            np.zeros([2, 2])
+        ],
+    ] * 3
 
 
 @pytest.fixture
@@ -166,6 +191,19 @@ def level0_scaled_4x4(color_black, color_red, color_blue,
         row_0, row_0,
         row_1, row_1
     ])
+
+
+@pytest.fixture
+def level0_stitched_green_mask():
+    ''' One 6x6 pixel green channel stitched from nine tiles
+    '''
+    row_0 = [
+        0, 1, 0, 0, 0, 0
+    ]
+    row_1 = [
+        0, 0, 0, 0, 0, 0
+    ]
+    return np.array([row_0, row_1] * 3)
 
 
 @pytest.fixture
@@ -348,5 +386,22 @@ def test_get_position_1_1(origin_zero, tile_size_2x2, indices_1_1):
     expected = [2, 2]
 
     result = get_position(indices_1_1, tile_size_2x2, origin_zero)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_stitch_tile_level0(level0_stitched_green_mask, level0_shape_6x6,
+                            level0_tiles_green_mask, tile_subregion_2x2):
+    ''' Test stitching green channel in level 0 using three tiles'''
+
+    expected = level0_stitched_green_mask
+
+    subregion = tile_subregion_2x2
+    tiles = level0_tiles_green_mask
+    result = np.zeros(level0_shape_6x6)
+
+    result = stitch_tile(result, subregion, [0, 0], tiles[0][0])
+    result = stitch_tile(result, subregion, [0, 2], tiles[1][0])
+    result = stitch_tile(result, subregion, [0, 4], tiles[2][0])
 
     np.testing.assert_array_equal(expected, result)
