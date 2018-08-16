@@ -9,6 +9,8 @@ from minerva_lib.crop import select_tiles
 from minerva_lib.crop import get_subregion
 from minerva_lib.crop import get_position
 from minerva_lib.crop import stitch_tile
+from minerva_lib.crop import stitch_tiles
+from minerva_lib import skimage_inline as ski
 
 
 @pytest.fixture
@@ -126,11 +128,91 @@ def level0_tiles_green_mask():
     return [
         [
             np.array([
-                [0, 1],
+                [0, 255],
                 [0, 0]
-            ]),
-            np.zeros([2, 2]),
-            np.zeros([2, 2])
+            ], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8)
+        ],
+    ] * 3
+
+
+@pytest.fixture
+def level0_tiles_red_mask():
+    ''' Nine 2x2 pixel tiles, red channel
+    '''
+    return [
+        [
+            np.array([
+                [0, 0],
+                [255, 0]
+            ], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8)
+        ],
+    ] * 3
+
+
+@pytest.fixture
+def level0_tiles_magenta_mask():
+    ''' Nine 2x2 pixel tiles, magenta channel
+    '''
+    return [
+        [
+            np.zeros([2, 2], dtype=np.uint8),
+            np.array([
+                [0, 255],
+                [0, 0]
+            ], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8)
+        ],
+    ] * 3
+
+
+@pytest.fixture
+def level0_tiles_blue_mask():
+    ''' Nine 2x2 pixel tiles, blue channel
+    '''
+    return [
+        [
+            np.zeros([2, 2], dtype=np.uint8),
+            np.array([
+                [0, 0],
+                [255, 0]
+            ], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8)
+        ],
+    ] * 3
+
+
+@pytest.fixture
+def level0_tiles_orange_mask():
+    ''' Nine 2x2 pixel tiles, orange channel
+    '''
+    return [
+        [
+            np.zeros([2, 2], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8),
+            np.array([
+                [0, 255],
+                [0, 0]
+            ], dtype=np.uint8)
+        ],
+    ] * 3
+
+
+@pytest.fixture
+def level0_tiles_cyan_mask():
+    ''' Nine 2x2 pixel tiles, cyan channel
+    '''
+    return [
+        [
+            np.zeros([2, 2], dtype=np.uint8),
+            np.zeros([2, 2], dtype=np.uint8),
+            np.array([
+                [0, 0],
+                [255, 0]
+            ], dtype=np.uint8)
         ],
     ] * 3
 
@@ -198,12 +280,12 @@ def level0_stitched_green_mask():
     ''' One 6x6 pixel green channel stitched from nine tiles
     '''
     row_0 = [
-        0, 1, 0, 0, 0, 0
+        0, 255, 0, 0, 0, 0
     ]
     row_1 = [
         0, 0, 0, 0, 0, 0
     ]
-    return np.array([row_0, row_1] * 3)
+    return np.array([row_0, row_1] * 3, dtype=np.uint8)
 
 
 @pytest.fixture
@@ -405,3 +487,130 @@ def test_stitch_tile_level0(level0_stitched_green_mask, level0_shape_6x6,
     result = stitch_tile(result, subregion, [0, 4], tiles[2][0])
 
     np.testing.assert_array_equal(expected, result)
+
+
+def test_stitch_tiles_level0(level0_tiles_green_mask,
+                             level0_tiles_red_mask,
+                             level0_tiles_magenta_mask,
+                             level0_tiles_blue_mask,
+                             level0_tiles_orange_mask,
+                             level0_tiles_cyan_mask,
+                             color_red, color_green, color_blue,
+                             color_magenta, color_cyan, color_orange,
+                             tile_size_2x2, origin_zero, level0_shape_6x6,
+                             level0_stitched):
+    ''' Test stitching all tiles for all channels to render level 0'''
+
+    expected = ski.adjust_gamma(level0_stitched, 1 / 2.2)
+
+    result = stitch_tiles([{
+        'min': 0,
+        'max': 1,
+        'indices': [0, 0],
+        'image': level0_tiles_green_mask[0][0],
+        'color': color_green
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [0, 1],
+        'image': level0_tiles_green_mask[1][0],
+        'color': color_green
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [0, 2],
+        'image': level0_tiles_green_mask[2][0],
+        'color': color_green
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [0, 0],
+        'image': level0_tiles_red_mask[0][0],
+        'color': color_red
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [0, 1],
+        'image': level0_tiles_red_mask[1][0],
+        'color': color_red
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [0, 2],
+        'image': level0_tiles_red_mask[2][0],
+        'color': color_red
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 0],
+        'image': level0_tiles_magenta_mask[0][1],
+        'color': color_magenta
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 1],
+        'image': level0_tiles_magenta_mask[1][1],
+        'color': color_magenta
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 2],
+        'image': level0_tiles_magenta_mask[2][1],
+        'color': color_magenta
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 0],
+        'image': level0_tiles_blue_mask[0][1],
+        'color': color_blue
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 1],
+        'image': level0_tiles_blue_mask[1][1],
+        'color': color_blue
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [1, 2],
+        'image': level0_tiles_blue_mask[2][1],
+        'color': color_blue
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 0],
+        'image': level0_tiles_orange_mask[0][2],
+        'color': color_orange
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 1],
+        'image': level0_tiles_orange_mask[1][2],
+        'color': color_orange
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 2],
+        'image': level0_tiles_orange_mask[2][2],
+        'color': color_orange
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 0],
+        'image': level0_tiles_cyan_mask[0][2],
+        'color': color_cyan
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 1],
+        'image': level0_tiles_cyan_mask[1][2],
+        'color': color_cyan
+    }, {
+        'min': 0,
+        'max': 1,
+        'indices': [2, 2],
+        'image': level0_tiles_cyan_mask[2][2],
+        'color': color_cyan
+    }], tile_size_2x2, origin_zero, level0_shape_6x6)
+
+    np.testing.assert_allclose(expected, result)
