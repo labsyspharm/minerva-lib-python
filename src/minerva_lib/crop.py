@@ -148,7 +148,7 @@ def stitch_tile(out, subregion, position, tile):
     ''' Position image tile into output array
 
     Args:
-        out: 2D RGB numpy array to contain stitched channels
+        out: 2D numpy array to contain stitched channels
         subregion: Start uv, end uv to get from tile
         position: Origin of tile when composited in _out_
         tile: 2D numpy array to stitch within _out_
@@ -179,7 +179,6 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
         tiles: Iterator of tiles to blend. Each dict in the
             list must have the following rendering settings:
             {
-                channel: Integer channel index
                 indices: Integer i, j tile indices
                 image: Numpy 2D image data of any type
                 color: Color as r, g, b float array within 0, 1
