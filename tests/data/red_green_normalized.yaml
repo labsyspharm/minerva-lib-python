@@ -1,0 +1,9 @@
+Indices:
+  - [0, 0]
+Channels:
+  - Channel: 0
+    Range: [0, 1]
+    Color: [1, 0, 0]
+  - Channel: 1
+    Range: [0.006, 0.024]
+    Color: [0, 1, 0]

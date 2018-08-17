@@ -145,6 +145,81 @@ def round_down():
 
 
 @pytest.fixture
+def real_tiles_red_mask():
+    return [
+        [
+            np.load('./data/red/0/0/tile.npy'),
+            np.load('./data/red/1/0/tile.npy'),
+            np.load('./data/red/2/0/tile.npy'),
+            np.load('./data/red/3/0/tile.npy')
+        ],
+        [
+            np.load('./data/red/0/1/tile.npy'),
+            np.load('./data/red/1/1/tile.npy'),
+            np.load('./data/red/2/1/tile.npy'),
+            np.load('./data/red/3/1/tile.npy')
+        ],
+        [
+            np.load('./data/red/0/2/tile.npy'),
+            np.load('./data/red/1/2/tile.npy'),
+            np.load('./data/red/2/2/tile.npy'),
+            np.load('./data/red/3/2/tile.npy')
+        ],
+        [
+            np.load('./data/red/0/3/tile.npy'),
+            np.load('./data/red/1/3/tile.npy'),
+            np.load('./data/red/2/3/tile.npy'),
+            np.load('./data/red/3/3/tile.npy')
+        ],
+    ]
+
+
+@pytest.fixture
+def tile_shape_256x256():
+    return [256, 256]
+
+
+@pytest.fixture
+def real_shape_1024x1024():
+    return [1024, 1024]
+
+
+@pytest.fixture
+def real_stitched_with_gamma():
+    return np.load('./data/red_green_normalized.npy')
+
+
+@pytest.fixture
+def real_tiles_green_mask():
+    return [
+        [
+            np.load('./data/green/0/0/tile.npy'),
+            np.load('./data/green/1/0/tile.npy'),
+            np.load('./data/green/2/0/tile.npy'),
+            np.load('./data/green/3/0/tile.npy')
+        ],
+        [
+            np.load('./data/green/0/1/tile.npy'),
+            np.load('./data/green/1/1/tile.npy'),
+            np.load('./data/green/2/1/tile.npy'),
+            np.load('./data/green/3/1/tile.npy')
+        ],
+        [
+            np.load('./data/green/0/2/tile.npy'),
+            np.load('./data/green/1/2/tile.npy'),
+            np.load('./data/green/2/2/tile.npy'),
+            np.load('./data/green/3/2/tile.npy')
+        ],
+        [
+            np.load('./data/green/0/3/tile.npy'),
+            np.load('./data/green/1/3/tile.npy'),
+            np.load('./data/green/2/3/tile.npy'),
+            np.load('./data/green/3/3/tile.npy')
+        ],
+    ]
+
+
+@pytest.fixture
 def level0_tiles_green_mask():
     ''' Nine 2x2 pixel tiles, green channel
     '''
@@ -714,3 +789,37 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
     }], tile_shape_2x2, origin_zero, level0_shape_6x6)
 
     np.testing.assert_allclose(expected, result)
+
+
+def test_stitch_tiles_real(real_tiles_green_mask,
+                           real_tiles_red_mask,
+                           color_red, color_green,
+                           tile_shape_256x256, origin_zero,
+                           real_shape_1024x1024,
+                           real_stitched_with_gamma):
+    ''' Test stitching all tiles for all channels to render real image'''
+
+    expected = real_stitched_with_gamma
+
+    inputs = []
+
+    for i in range(0, 4):
+        for j in range(0, 4):
+            inputs += [{
+                'min': 0.006,
+                'max': 0.024,
+                'indices': [i, j],
+                'image': real_tiles_green_mask[j][i],
+                'color': color_green
+            }, {
+                'min': 0,
+                'max': 1,
+                'indices': [i, j],
+                'image': real_tiles_red_mask[j][i],
+                'color': color_red
+            }]
+
+    result = stitch_tiles(inputs, tile_shape_256x256,
+                          origin_zero, real_shape_1024x1024)
+
+    np.testing.assert_allclose(expected, np.uint8(255*result))
