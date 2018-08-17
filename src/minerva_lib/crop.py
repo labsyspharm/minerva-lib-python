@@ -15,6 +15,9 @@ def scale_image_nearest_neighbor(source, factor):
         A numpy array with the resized `source`
     '''
 
+    if factor <= 0:
+        raise ValueError('Scale factor must be above zero')
+
     factors = [factor, factor, 1]
 
     out_shape = [int(round(a * b)) for a, b in zip(source.shape, factors)]
@@ -65,7 +68,7 @@ def scale_by_pyramid_level(coordinates, level):
     ''' Apply the pyramid level to coordinates
 
     Arguments:
-        coordinates: Coordinates to downscale by _level_
+        coordrnates: Coordinates to downscale by _level_
         level: Integer power of 2 pyramid level
 
     Returns:
@@ -76,71 +79,100 @@ def scale_by_pyramid_level(coordinates, level):
     return np.int64(np.floor(scaled_coords))
 
 
-def select_tiles(tile_size, crop_origin, crop_size):
-    ''' Select tile coordinates covering crop region
+def get_tile_start(tile_size, crop_origin):
+    ''' Return the first tile indices in x, y
 
     Args:
         tile_size: width, height of one tile
         crop_origin: x, y coordinates to begin subregion
         crop_size: width, height to select
+
+    Returns:
+        Two-item int64 array i, j tile indices
+    '''
+    start = np.array(crop_origin)
+
+    return np.int64(np.floor(start / tile_size))
+
+
+def get_tile_count(tile_size, crop_origin, crop_size):
+    ''' Return the number of tiles in x, y
+
+    Args:
+        tile_size: width, height of one tile
+        crop_origin: x, y coordinates to begin subregion
+        crop_size: width, height to select
+        image_size: width, height of full image
+
+    Returns:
+        Two-item int64 array i, j tile indices
+    '''
+    end = np.array(crop_origin) + crop_size
+
+    return np.int64(np.ceil(end / tile_size))
+
+
+def select_tiles(tile_size, crop_origin, crop_size):
+    ''' Select tile indices covering crop region
+
+    Args:
+        tile_size: width, height of one tile
+        crop_origin: x, y coordinates to begin subregion
+        crop_size: width, height to select
+        image_size: width, height of full image
 
     Returns:
         List of integer i, j tile indices
     '''
-    start = np.array(crop_origin)
-    end = start + crop_size
-    fractional_start = start / tile_size
-    fractional_end = end / tile_size
-
-    # Round to get indices containing subregion
-    first_index = np.int64(np.floor(fractional_start))
-    last_index = np.int64(np.ceil(fractional_end))
+    start_ij = get_tile_start(tile_size, crop_origin)
+    count_ij = get_tile_count(tile_size, crop_origin, crop_size)
 
     # Calculate all indices between first and last
-    index_shape = last_index - first_index
-    offsets = np.argwhere(np.ones(index_shape))
-    indices = first_index + offsets
-
-    return indices.tolist()
+    offsets = np.argwhere(np.ones(count_ij - start_ij))
+    return (start_ij + offsets).tolist()
 
 
 def get_subregion(indices, tile_size, crop_origin, crop_size):
-    ''' Define subregion to select from within tile
+    '''Determines the region within this specific tile
+    that is required for the requested image region.
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: width, height to select
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
 
     Returns:
-        start uv, end uv relative to tile
+        Subregion start, end relative to origin of tile
     '''
 
-    crop_end = np.int64(crop_origin) + crop_size
     tile_start = np.int64(indices) * tile_size
+    crop_end = np.int64(crop_origin) + crop_size
     tile_end = tile_start + tile_size
 
-    return [
-        np.maximum(crop_origin, tile_start) - tile_start,
-        np.minimum(tile_end, crop_end) - tile_start
-    ]
+    # Should be true that 0 <= start_uv < end_uv <= tile_size
+    start_uv = np.maximum(crop_origin, tile_start) - tile_start
+    end_uv = np.minimum(tile_end, crop_end) - tile_start
+
+    return [start_uv, end_uv]
 
 
 def get_position(indices, tile_size, crop_origin):
-    ''' Define position of cropped tile relative to crop_origin
+    ''' Determines where in the requested image to insert
+    the required region from this specific tile.
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
+        crop_origin: x, y origin of requested image region
 
     Returns:
-        The xy position relative to crop_origin
+        Position of tile region within requested image region
     '''
 
     tile_start = np.int64(indices) * tile_size
 
+    # Should never be negative
     return np.maximum(crop_origin, tile_start) - crop_origin
 
 

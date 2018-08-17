@@ -5,6 +5,8 @@ import numpy as np
 from minerva_lib.crop import scale_image_nearest_neighbor
 from minerva_lib.crop import get_optimum_pyramid_level
 from minerva_lib.crop import scale_by_pyramid_level
+from minerva_lib.crop import get_tile_start
+from minerva_lib.crop import get_tile_count
 from minerva_lib.crop import select_tiles
 from minerva_lib.crop import get_subregion
 from minerva_lib.crop import get_position
@@ -71,6 +73,11 @@ def origin_zero():
 @pytest.fixture
 def indices_1_1():
     return [1, 1]
+
+
+@pytest.fixture
+def indices_3_3():
+    return [3, 3]
 
 
 @pytest.fixture
@@ -381,6 +388,13 @@ def test_scale_image_level0_4x4(level0_stitched, level0_scaled_4x4):
     np.testing.assert_allclose(expected, result)
 
 
+def test_scale_image_invalid_factor(level0_stitched):
+    ''' Test downsampling level0 to 0% fails '''
+
+    with pytest.raises(ValueError):
+        scale_image_nearest_neighbor(level0_stitched, 0)
+
+
 def test_get_optimum_pyramid_level_up(level0_shape_6x6, num_levels_2,
                                       max_4, round_up):
     ''' Test rounding up to pyramid level contained by maximum'''
@@ -421,6 +435,28 @@ def test_scale_by_pyramid_level1(level0_shape_6x6, level1_shape_3x3):
     expected = np.array(level1_shape_3x3, dtype=np.int64)
 
     result = scale_by_pyramid_level(level0_shape_6x6, 1)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_tile_start_1_1(indices_1_1, tile_size_2x2):
+    ''' Ensure correct lower bound for origin after first tile'''
+
+    expected = indices_1_1
+
+    result = get_tile_start(tile_size_2x2, tile_size_2x2)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_tile_count_3_3(origin_zero, indices_3_3,
+                        level0_shape_6x6, tile_size_2x2):
+    ''' Ensure correct upper bound within level0 shape'''
+
+    expected = indices_3_3
+
+    result = get_tile_count(tile_size_2x2, origin_zero,
+                            level0_shape_6x6)
 
     np.testing.assert_array_equal(expected, result)
 
