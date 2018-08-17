@@ -112,26 +112,6 @@ def get_tile_count(tile_size, crop_origin, crop_size):
     return np.int64(np.ceil(end / tile_size))
 
 
-def select_tiles(tile_size, crop_origin, crop_size):
-    ''' Select tile indices covering crop region
-
-    Args:
-        tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: width, height to select
-        image_size: width, height of full image
-
-    Returns:
-        List of integer i, j tile indices
-    '''
-    start_ij = get_tile_start(tile_size, crop_origin)
-    count_ij = get_tile_count(tile_size, crop_origin, crop_size)
-
-    # Calculate all indices between first and last
-    offsets = np.argwhere(np.ones(count_ij - start_ij))
-    return (start_ij + offsets).tolist()
-
-
 def get_subregion(indices, tile_size, crop_origin, crop_size):
     '''Determines the region within this specific tile
     that is required for the requested image region.
@@ -174,6 +154,50 @@ def get_position(indices, tile_size, crop_origin):
 
     # Should never be negative
     return np.maximum(crop_origin, tile_start) - crop_origin
+
+
+def validate_region_bounds(crop_origin, crop_size, image_size):
+    ''' Decides if the image contains the requested image region.
+
+    Args:
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
+        image_size: width, height of full image
+
+    Returns:
+        True if the requested image region is valid
+    '''
+
+    if any(np.less_equal(crop_size, 0)):
+        return False
+
+    if any(np.less(crop_origin, 0)):
+        return False
+
+    crop_end = np.array(crop_origin) + crop_size
+    if any(np.less(image_size, crop_end)):
+        return False
+
+    return True
+
+
+def select_tiles(tile_size, crop_origin, crop_size):
+    ''' Select tile indices covering crop region
+
+    Args:
+        tile_size: width, height of one tile
+        crop_origin: x, y coordinates to begin subregion
+        crop_size: width, height to select
+
+    Returns:
+        List of integer i, j tile indices
+    '''
+    start_ij = get_tile_start(tile_size, crop_origin)
+    count_ij = get_tile_count(tile_size, crop_origin, crop_size)
+
+    # Calculate all indices between first and last
+    offsets = np.argwhere(np.ones(count_ij - start_ij))
+    return (start_ij + offsets).tolist()
 
 
 def stitch_tile(out, subregion, position, tile):

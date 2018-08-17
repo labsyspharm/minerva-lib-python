@@ -5,6 +5,7 @@ import numpy as np
 from minerva_lib.crop import scale_image_nearest_neighbor
 from minerva_lib.crop import get_optimum_pyramid_level
 from minerva_lib.crop import scale_by_pyramid_level
+from minerva_lib.crop import validate_region_bounds
 from minerva_lib.crop import get_tile_start
 from minerva_lib.crop import get_tile_count
 from minerva_lib.crop import select_tiles
@@ -66,7 +67,22 @@ def color_half_mean_cyan_orange():
 
 
 @pytest.fixture
+def origin_negative():
+    return [-1, 0]
+
+
+@pytest.fixture
 def origin_zero():
+    return [0, 0]
+
+
+@pytest.fixture
+def origin_0_1():
+    return [0, 1]
+
+
+@pytest.fixture
+def shape_0x0():
     return [0, 0]
 
 
@@ -81,7 +97,7 @@ def indices_3_3():
 
 
 @pytest.fixture
-def tile_size_2x2():
+def tile_shape_2x2():
     return [2, 2]
 
 
@@ -439,51 +455,99 @@ def test_scale_by_pyramid_level1(level0_shape_6x6, level1_shape_3x3):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_tile_start_1_1(indices_1_1, tile_size_2x2):
+def test_tile_start_1_1(indices_1_1, tile_shape_2x2):
     ''' Ensure correct lower bound for origin after first tile'''
 
     expected = indices_1_1
 
-    result = get_tile_start(tile_size_2x2, tile_size_2x2)
+    result = get_tile_start(tile_shape_2x2, tile_shape_2x2)
 
     np.testing.assert_array_equal(expected, result)
 
 
 def test_tile_count_3_3(origin_zero, indices_3_3,
-                        level0_shape_6x6, tile_size_2x2):
+                        level0_shape_6x6, tile_shape_2x2):
     ''' Ensure correct upper bound within level0 shape'''
 
     expected = indices_3_3
 
-    result = get_tile_count(tile_size_2x2, origin_zero,
+    result = get_tile_count(tile_shape_2x2, origin_zero,
                             level0_shape_6x6)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_tiles_level0(origin_zero, tile_size_2x2,
+def test_validate_region_whole(origin_zero, level0_shape_6x6):
+    ''' Ensure full region is validated '''
+
+    result = validate_region_bounds(origin_zero, level0_shape_6x6,
+                                    level0_shape_6x6)
+
+    assert result
+
+
+def test_validate_region_within(origin_0_1, tile_shape_2x2,
+                                level0_shape_6x6):
+    ''' Ensure partial region is validated '''
+
+    result = validate_region_bounds(origin_0_1, tile_shape_2x2,
+                                    level0_shape_6x6)
+
+    assert result
+
+
+def test_validate_region_exceeds(origin_0_1, level0_shape_6x6):
+    ''' Ensure excessively large region is invalidated '''
+
+    result = validate_region_bounds(origin_0_1, level0_shape_6x6,
+                                    level0_shape_6x6)
+
+    assert not result
+
+
+def test_validate_region_empty(origin_zero, shape_0x0,
+                               level0_shape_6x6):
+    ''' Ensure empty region is invalidated '''
+
+    result = validate_region_bounds(origin_zero, shape_0x0,
+                                    level0_shape_6x6)
+
+    assert not result
+
+
+def test_validate_region_negative(origin_negative, tile_shape_2x2,
+                                  level0_shape_6x6):
+    ''' Ensure negative region is invalidated '''
+
+    result = validate_region_bounds(origin_negative, tile_shape_2x2,
+                                    level0_shape_6x6)
+
+    assert not result
+
+
+def test_select_tiles_level0(origin_zero, tile_shape_2x2,
                              level0_shape_6x6, level0_tile_list):
     ''' Test selecting all level 0 tiles'''
 
     expected = level0_tile_list
 
-    result = select_tiles(tile_size_2x2, origin_zero, level0_shape_6x6)
+    result = select_tiles(tile_shape_2x2, origin_zero, level0_shape_6x6)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_tiles_level1(origin_zero, tile_size_2x2,
+def test_select_tiles_level1(origin_zero, tile_shape_2x2,
                              level1_shape_3x3, level1_tile_list):
     ''' Test selecting all level 1 tiles'''
 
     expected = level1_tile_list
 
-    result = select_tiles(tile_size_2x2, origin_zero, level1_shape_3x3)
+    result = select_tiles(tile_shape_2x2, origin_zero, level1_shape_3x3)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_get_subregion_1_1(origin_zero, tile_size_2x2,
+def test_get_subregion_1_1(origin_zero, tile_shape_2x2,
                            level1_shape_3x3, indices_1_1):
     ''' Test subregion in 2x2 tile at 1,1 for 3x3 shape'''
 
@@ -492,18 +556,18 @@ def test_get_subregion_1_1(origin_zero, tile_size_2x2,
         [1, 1]
     ]
 
-    result = get_subregion(indices_1_1, tile_size_2x2,
+    result = get_subregion(indices_1_1, tile_shape_2x2,
                            origin_zero, level1_shape_3x3)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_get_position_1_1(origin_zero, tile_size_2x2, indices_1_1):
+def test_get_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
     ''' Test position for 2x2 tile at 1, 1'''
 
     expected = [2, 2]
 
-    result = get_position(indices_1_1, tile_size_2x2, origin_zero)
+    result = get_position(indices_1_1, tile_shape_2x2, origin_zero)
 
     np.testing.assert_array_equal(expected, result)
 
@@ -533,7 +597,7 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
                              level0_tiles_cyan_mask,
                              color_red, color_green, color_blue,
                              color_magenta, color_cyan, color_orange,
-                             tile_size_2x2, origin_zero, level0_shape_6x6,
+                             tile_shape_2x2, origin_zero, level0_shape_6x6,
                              level0_stitched):
     ''' Test stitching all tiles for all channels to render level 0'''
 
@@ -647,6 +711,6 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
         'indices': [2, 2],
         'image': level0_tiles_cyan_mask[2][2],
         'color': color_cyan
-    }], tile_size_2x2, origin_zero, level0_shape_6x6)
+    }], tile_shape_2x2, origin_zero, level0_shape_6x6)
 
     np.testing.assert_allclose(expected, result)
