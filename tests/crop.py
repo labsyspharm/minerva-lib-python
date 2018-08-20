@@ -2,6 +2,8 @@
 
 import pytest
 import numpy as np
+from pathlib import Path
+from inspect import currentframe, getframeinfo
 from minerva_lib.crop import scale_image_nearest_neighbor
 from minerva_lib.crop import get_optimum_pyramid_level
 from minerva_lib.crop import scale_by_pyramid_level
@@ -14,6 +16,12 @@ from minerva_lib.crop import get_position
 from minerva_lib.crop import stitch_tile
 from minerva_lib.crop import stitch_tiles
 from minerva_lib import skimage_inline as ski
+
+
+@pytest.fixture
+def dirname():
+    filename = getframeinfo(currentframe()).filename
+    return Path(filename).resolve().parent
 
 
 @pytest.fixture
@@ -145,31 +153,31 @@ def round_down():
 
 
 @pytest.fixture
-def real_tiles_red_mask():
+def real_tiles_red_mask(dirname):
     return [
         [
-            np.load('./data/red/0/0/tile.npy'),
-            np.load('./data/red/1/0/tile.npy'),
-            np.load('./data/red/2/0/tile.npy'),
-            np.load('./data/red/3/0/tile.npy')
+            np.load(Path(dirname, 'data/red/0/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/1/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/2/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/3/0/tile.npy').resolve())
         ],
         [
-            np.load('./data/red/0/1/tile.npy'),
-            np.load('./data/red/1/1/tile.npy'),
-            np.load('./data/red/2/1/tile.npy'),
-            np.load('./data/red/3/1/tile.npy')
+            np.load(Path(dirname, 'data/red/0/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/1/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/2/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/3/1/tile.npy').resolve())
         ],
         [
-            np.load('./data/red/0/2/tile.npy'),
-            np.load('./data/red/1/2/tile.npy'),
-            np.load('./data/red/2/2/tile.npy'),
-            np.load('./data/red/3/2/tile.npy')
+            np.load(Path(dirname, 'data/red/0/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/1/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/2/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/3/2/tile.npy').resolve())
         ],
         [
-            np.load('./data/red/0/3/tile.npy'),
-            np.load('./data/red/1/3/tile.npy'),
-            np.load('./data/red/2/3/tile.npy'),
-            np.load('./data/red/3/3/tile.npy')
+            np.load(Path(dirname, 'data/red/0/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/1/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/2/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/red/3/3/tile.npy').resolve())
         ],
     ]
 
@@ -185,36 +193,36 @@ def real_shape_1024x1024():
 
 
 @pytest.fixture
-def real_stitched_with_gamma():
-    return np.load('./data/red_green_normalized.npy')
+def real_stitched_with_gamma(dirname):
+    return np.load(Path(dirname, 'data/red_green_normalized.npy').resolve())
 
 
 @pytest.fixture
-def real_tiles_green_mask():
+def real_tiles_green_mask(dirname):
     return [
         [
-            np.load('./data/green/0/0/tile.npy'),
-            np.load('./data/green/1/0/tile.npy'),
-            np.load('./data/green/2/0/tile.npy'),
-            np.load('./data/green/3/0/tile.npy')
+            np.load(Path(dirname, 'data/green/0/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/1/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/2/0/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/3/0/tile.npy').resolve())
         ],
         [
-            np.load('./data/green/0/1/tile.npy'),
-            np.load('./data/green/1/1/tile.npy'),
-            np.load('./data/green/2/1/tile.npy'),
-            np.load('./data/green/3/1/tile.npy')
+            np.load(Path(dirname, 'data/green/0/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/1/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/2/1/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/3/1/tile.npy').resolve())
         ],
         [
-            np.load('./data/green/0/2/tile.npy'),
-            np.load('./data/green/1/2/tile.npy'),
-            np.load('./data/green/2/2/tile.npy'),
-            np.load('./data/green/3/2/tile.npy')
+            np.load(Path(dirname, 'data/green/0/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/1/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/2/2/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/3/2/tile.npy').resolve())
         ],
         [
-            np.load('./data/green/0/3/tile.npy'),
-            np.load('./data/green/1/3/tile.npy'),
-            np.load('./data/green/2/3/tile.npy'),
-            np.load('./data/green/3/3/tile.npy')
+            np.load(Path(dirname, 'data/green/0/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/1/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/2/3/tile.npy').resolve()),
+            np.load(Path(dirname, 'data/green/3/3/tile.npy').resolve())
         ],
     ]
 
