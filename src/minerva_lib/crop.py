@@ -234,7 +234,7 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
 
     Args:
         tiles: Iterator of tiles to blend. Each dict in the
-            list must have the following rendering settings:
+            iterator must have the following rendering settings:
             {
                 indices: Integer i, j tile indices
                 image: Numpy 2D image data of any type
