@@ -72,7 +72,7 @@ def scale_by_pyramid_level(coordinates, level):
         level: Integer power of 2 pyramid level
 
     Returns:
-        downscaled integer coordinates
+        Downscaled integer coordinates
     '''
 
     scaled_coords = np.array(coordinates) / (2 ** level)
