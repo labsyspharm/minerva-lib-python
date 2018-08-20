@@ -5,7 +5,7 @@ from . import skimage_inline as ski
 
 
 def scale_image_nearest_neighbor(source, factor):
-    ''' Resize an image by a given factor using nearest neighbor pixels
+    ''' Resizes an image by a given factor using nearest neighbor pixels.
 
     Arguments:
         source: A 2D or 3D numpy array to resize
@@ -36,7 +36,7 @@ def scale_image_nearest_neighbor(source, factor):
 
 def get_optimum_pyramid_level(input_shape, level_count,
                               max_size=None, round_up=True):
-    ''' Calculate the pyramid level below a maximum
+    ''' Gives a pyramid level that scales a region near a maximum size.
 
     Arguments:
         input_shape: The width, height at pyramid level 0
@@ -65,7 +65,7 @@ def get_optimum_pyramid_level(input_shape, level_count,
 
 
 def scale_by_pyramid_level(coordinates, level):
-    ''' Apply the pyramid level to coordinates
+    ''' Returns the coordinates measured at a given pyramid level.
 
     Arguments:
         coordrnates: Coordinates to downscale by _level_
@@ -80,12 +80,12 @@ def scale_by_pyramid_level(coordinates, level):
 
 
 def get_tile_start(tile_size, crop_origin):
-    ''' Return the first tile indices in x, y
+    ''' Returns the indices of the first tile in the region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: width, height to select
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
 
     Returns:
         Two-item int64 array i, j tile indices
@@ -96,12 +96,12 @@ def get_tile_start(tile_size, crop_origin):
 
 
 def get_tile_count(tile_size, crop_origin, crop_size):
-    ''' Return the number of tiles in x, y
+    ''' Returns the number of tiles in the region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: width, height to select
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
         image_size: width, height of full image
 
     Returns:
@@ -123,6 +123,7 @@ def get_subregion(indices, tile_size, crop_origin, crop_size):
         crop_size: width, height of requested image region
 
     Returns:
+        The part of the tile within the requested region
         Subregion start, end relative to origin of tile
     '''
 
@@ -182,12 +183,12 @@ def validate_region_bounds(crop_origin, crop_size, image_size):
 
 
 def select_tiles(tile_size, crop_origin, crop_size):
-    ''' Select tile indices covering crop region
+    ''' Selects tile indices to fill the requested region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: width, height to select
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
 
     Returns:
         List of integer i, j tile indices
@@ -201,12 +202,12 @@ def select_tiles(tile_size, crop_origin, crop_size):
 
 
 def stitch_tile(out, subregion, position, tile):
-    ''' Position image tile into output array
+    ''' Positions this tile into the requested region.
 
     Args:
         out: 2D numpy array to contain stitched channels
-        subregion: Start uv, end uv to get from tile
-        position: Origin of tile when composited in _out_
+        subregion: The part of the tile within the requested region
+        position: Origin of tile in requested region
         tile: 2D numpy array to stitch within _out_
 
     Returns:
@@ -229,7 +230,7 @@ def stitch_tile(out, subregion, position, tile):
 
 
 def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
-    ''' Position all image tiles for all channels
+    ''' Positions all image tiles and channels in the requested region.
 
     Args:
         tiles: Iterator of tiles to blend. Each dict in the
@@ -242,8 +243,8 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
                 max: Threshhold range maximum, float within 0, 1
             }
         tile_size: width, height of one tile
-        crop_origin: x, y coordinates to begin subregion
-        crop_size: The width, height of output image
+        crop_origin: x, y origin of requested image region
+        crop_size: width, height of requested image region
 
     Returns:
         For a given `shape` of `(width, height)`,
