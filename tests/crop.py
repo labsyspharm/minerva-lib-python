@@ -194,6 +194,23 @@ def real_shape_1024x1024():
 
 @pytest.fixture
 def real_stitched_with_gamma(dirname):
+    ''' The blend.composite_channels function made the image using this:
+
+    [{
+        image: # from {URL}/C0-T0-Z0-L0-Y0-X0.png
+        color: [1, 0, 0]
+        min: 0
+        max: 1
+    },{
+        image: # from {URL}/C1-T0-Z0-L0-Y0-X0.png
+        color: [0, 1, 0]
+        min: 0.006
+        max: 0.024
+    }]
+
+    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles/
+    '''
+
     return np.load(Path(dirname, 'data/red_green_normalized.npy').resolve())
 
 
