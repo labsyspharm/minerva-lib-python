@@ -347,22 +347,6 @@ def level0_tiles(color_black, color_red, color_green, color_blue,
 
 
 @pytest.fixture
-def level0_tile_list():
-
-    return [
-        [0, 0],
-        [0, 1],
-        [0, 2],
-        [1, 0],
-        [1, 1],
-        [1, 2],
-        [2, 0],
-        [2, 1],
-        [2, 2]
-    ]
-
-
-@pytest.fixture
 def level0_scaled_4x4(color_black, color_red, color_blue,
                       color_magenta, color_orange):
     ''' One 4x4 image scaled from the 6x6 pixels of level 0
@@ -608,20 +592,22 @@ def test_validate_region_negative(origin_negative, tile_shape_2x2,
     assert not result
 
 
-def test_select_tiles_level0(origin_zero, tile_shape_2x2,
-                             level0_shape_6x6, level0_tile_list):
-    ''' Test selecting all level 0 tiles'''
+def test_select_tiles_level0(origin_0_1, tile_shape_2x2):
+    ''' Ensure selection of two tiles for partial region '''
 
-    expected = level0_tile_list
+    expected = [
+        [0, 0],
+        [0, 1]
+    ]
 
-    result = select_tiles(tile_shape_2x2, origin_zero, level0_shape_6x6)
+    result = select_tiles(tile_shape_2x2, origin_0_1, tile_shape_2x2)
 
     np.testing.assert_array_equal(expected, result)
 
 
 def test_select_tiles_level1(origin_zero, tile_shape_2x2,
                              level1_shape_3x3, level1_tile_list):
-    ''' Test selecting all level 1 tiles'''
+    ''' Ensure selection of all avaialable tiles for full region '''
 
     expected = level1_tile_list
 
@@ -632,7 +618,7 @@ def test_select_tiles_level1(origin_zero, tile_shape_2x2,
 
 def test_get_subregion_1_1(origin_zero, tile_shape_2x2,
                            level1_shape_3x3, indices_1_1):
-    ''' Test subregion in 2x2 tile at 1,1 for 3x3 shape'''
+    ''' Ensure partial tile is selected when full tile unnecessary '''
 
     expected = [
         [0, 0],
@@ -646,7 +632,7 @@ def test_get_subregion_1_1(origin_zero, tile_shape_2x2,
 
 
 def test_get_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
-    ''' Test position for 2x2 tile at 1, 1'''
+    ''' Test ability to position tile in middle of image '''
 
     expected = [2, 2]
 
@@ -657,7 +643,7 @@ def test_get_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
 
 def test_stitch_tile_level0(level0_stitched_green_mask, level0_shape_6x6,
                             level0_tiles_green_mask, tile_subregion_2x2):
-    ''' Test stitching green channel in level 0 using three tiles'''
+    ''' Test correct cropping of single channel without rendering '''
 
     expected = level0_stitched_green_mask
 
@@ -682,7 +668,7 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
                              color_magenta, color_cyan, color_orange,
                              tile_shape_2x2, origin_zero, level0_shape_6x6,
                              level0_stitched):
-    ''' Test stitching all tiles for all channels to render level 0'''
+    ''' Ensure expected rendering of multi-tile multi-channel image '''
 
     expected = ski.adjust_gamma(level0_stitched, 1 / 2.2)
 
@@ -805,7 +791,7 @@ def test_stitch_tiles_real(real_tiles_green_mask,
                            tile_shape_256x256, origin_zero,
                            real_shape_1024x1024,
                            real_stitched_with_gamma):
-    ''' Test stitching all tiles for all channels to render real image'''
+    ''' Ensure 1024 x 1024 image matches image rendered without tiling '''
 
     expected = real_stitched_with_gamma
 
