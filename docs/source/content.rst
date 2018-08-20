@@ -3,3 +3,4 @@
 
     index
     blend
+    crop
