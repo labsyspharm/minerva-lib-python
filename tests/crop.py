@@ -183,6 +183,36 @@ def real_tiles_red_mask(dirname):
 
 
 @pytest.fixture
+def tile_shape_1024x1024():
+    return [1024, 1024]
+
+
+@pytest.fixture
+def hd_shape_1920x1080():
+    return [1920, 1080]
+
+
+@pytest.fixture
+def hd_stitched(hd_shape_1920x1080, color_green):
+    hd_w, hd_h = hd_shape_1920x1080
+    return np.ones((hd_h, hd_w, 3)) * color_green
+
+
+@pytest.fixture
+def hd_tiles_green_mask():
+    return [
+        [
+            np.ones((1024, 1024)),
+            np.ones((1024, 896))
+        ],
+        [
+            np.ones((56, 1024)),
+            np.ones((56, 896))
+        ]
+    ]
+
+
+@pytest.fixture
 def tile_shape_256x256():
     return [256, 256]
 
@@ -802,6 +832,31 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
     np.testing.assert_allclose(expected, result)
 
 
+def test_stitch_tiles_nonsquare(hd_tiles_green_mask, origin_zero,
+                                color_green, tile_shape_1024x1024,
+                                hd_shape_1920x1080, hd_stitched):
+    ''' Ensure nonsquare image is stitched correctly with square tiles'''
+
+    expected = ski.adjust_gamma(hd_stitched, 1 / 2.2)
+
+    inputs = []
+
+    for i in range(0, 2):
+        for j in range(0, 2):
+            inputs += [{
+                'min': 0,
+                'max': 1,
+                'indices': [i, j],
+                'image': hd_tiles_green_mask[j][i],
+                'color': color_green
+            }]
+
+    result = stitch_tiles(inputs, tile_shape_1024x1024,
+                          origin_zero, hd_shape_1920x1080)
+
+    np.testing.assert_allclose(expected, result)
+
+
 def test_stitch_tiles_real(real_tiles_green_mask,
                            real_tiles_red_mask,
                            color_red, color_green,
@@ -834,3 +889,4 @@ def test_stitch_tiles_real(real_tiles_green_mask,
                           origin_zero, real_shape_1024x1024)
 
     np.testing.assert_allclose(expected, np.uint8(255*result))
+
