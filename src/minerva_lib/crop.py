@@ -252,23 +252,23 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
         `(height, width, 3)` and values in the range 0 to 1
     '''
     inputs = [t for t in tiles if t]
-    rgb_tile_size = tuple(tile_size) + (3,)
-    stitched = np.zeros(tuple(crop_size) + (3,))
+
+    crop_w, crop_h = crop_size
+    stitched = np.zeros((crop_h, crop_w, 3))
 
     def composite(tile_hash, tile):
         ''' Composite all tiles with same indices
         '''
 
         idx = tuple(tile['indices'])
+        tile_h, tile_w = tile['image'].shape
 
         if idx not in tile_hash:
             tile_buffer = {
                 'indices': idx,
-                'image': np.zeros(rgb_tile_size, dtype=np.float32)
+                'image': np.zeros((tile_h, tile_w, 3), dtype=np.float32)
             }
             tile_hash[idx] = tile_buffer
-
-        tile_h, tile_w = tile['image'].shape
 
         composite_channel(tile_hash[idx]['image'][:tile_h, :tile_w],
                           tile['image'], tile['color'],
