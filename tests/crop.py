@@ -688,6 +688,22 @@ def test_get_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
     np.testing.assert_array_equal(expected, result)
 
 
+def test_stitch_tile_overwrite(level0_tiles_red_mask, level0_tiles_green_mask,
+                               tile_shape_2x2, tile_subregion_2x2):
+    ''' Ensure stiching overwrites existing content of stitched region'''
+
+    subregion = tile_subregion_2x2
+    overwritten = level0_tiles_red_mask[0][0]
+    expected = level0_tiles_green_mask[0][0]
+
+    result = np.zeros(tile_shape_2x2)
+
+    result = stitch_tile(result, subregion, [0, 0], overwritten)
+    result = stitch_tile(result, subregion, [0, 0], expected)
+
+    np.testing.assert_array_equal(expected, result)
+
+
 def test_stitch_tile_level0(level0_stitched_green_mask, level0_shape_6x6,
                             level0_tiles_green_mask, tile_subregion_2x2):
     ''' Test correct cropping of single channel without rendering '''
