@@ -905,4 +905,3 @@ def test_stitch_tiles_real(real_tiles_green_mask,
                           origin_zero, real_shape_1024x1024)
 
     np.testing.assert_allclose(expected, np.uint8(255*result))
-
