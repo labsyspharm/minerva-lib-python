@@ -224,7 +224,7 @@ def stitch_tile(out, subregion, position, tile):
     y_1, x_1 = [y_0, x_0] + shape[:2]
 
     # Assign subregion within boundary
-    out[y_0:y_1, x_0:x_1] += subtile
+    out[y_0:y_1, x_0:x_1] = subtile
 
     return out
 
