@@ -4,112 +4,106 @@ import pytest
 import numpy as np
 from pathlib import Path
 from inspect import currentframe, getframeinfo
-from minerva_lib.crop import scale_image_nearest_neighbor
-from minerva_lib.crop import get_optimum_pyramid_level
-from minerva_lib.crop import scale_by_pyramid_level
-from minerva_lib.crop import validate_region_bounds
-from minerva_lib.crop import get_tile_start
-from minerva_lib.crop import get_tile_count
-from minerva_lib.crop import select_tiles
-from minerva_lib.crop import get_subregion
-from minerva_lib.crop import get_position
-from minerva_lib.crop import stitch_tile
-from minerva_lib.crop import stitch_tiles
+from minerva_lib.crop import scale_image_nearest_neighbor, get_tile_start, \
+                             get_optimum_pyramid_level, get_tile_count, \
+                             scale_by_pyramid_level, select_tiles, \
+                             validate_region_bounds, get_subregion, \
+                             get_position, stitch_tile, stitch_tiles
 from minerva_lib import skimage_inline as ski
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def dirname():
     filename = getframeinfo(currentframe()).filename
     return Path(filename).resolve().parent
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_black():
     return np.array([0, 0, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_red():
     return np.array([1, 0, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_green():
     return np.array([0, 1, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_half_mean_red_green():
     return np.array([0.25, 0.25, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_blue():
     return np.array([0, 0, 1], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_magenta():
     return np.array([0, 1, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_half_mean_blue_magenta():
     return np.array([0, 0.25, 0.25], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_cyan():
     return np.array([0, 0, 1], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_orange():
     return np.array([1, .5, 0], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def color_half_mean_cyan_orange():
     return np.array([0.25, 0.38, 0.25], dtype=np.float32)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def origin_negative():
     return [-1, 0]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def origin_zero():
     return [0, 0]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def origin_0_1():
     return [0, 1]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def shape_0x0():
     return [0, 0]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def indices_1_1():
     return [1, 1]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def indices_3_3():
     return [3, 3]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def tile_shape_2x2():
     return [2, 2]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def tile_subregion_2x2():
     return [
         [0, 0],
@@ -117,42 +111,42 @@ def tile_subregion_2x2():
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_shape_6x6():
     return [6, 6]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def scaled_shape_4x4():
     return [4, 4]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level1_shape_3x3():
     return [3, 3]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def max_4():
     return 4
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def num_levels_2():
     return 2
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def round_up():
     return True
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def round_down():
     return False
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def real_tiles_red_mask(dirname):
     return [
         [
@@ -182,23 +176,23 @@ def real_tiles_red_mask(dirname):
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def tile_shape_1024x1024():
     return [1024, 1024]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def hd_shape_1920x1080():
     return [1920, 1080]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def hd_stitched(hd_shape_1920x1080, color_green):
     hd_w, hd_h = hd_shape_1920x1080
     return np.ones((hd_h, hd_w, 3)) * color_green
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def hd_tiles_green_mask():
     return [
         [
@@ -212,19 +206,22 @@ def hd_tiles_green_mask():
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def tile_shape_256x256():
     return [256, 256]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def real_shape_1024x1024():
     return [1024, 1024]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def real_stitched_with_gamma(dirname):
-    ''' The blend.composite_channels function made the image using this:
+    ''' Loads a local red/green composite image from a npy file
+
+    The red/green composite image originates from a call to the
+    blend.composite_channels function with the following arguments:
 
     [{
         image: # from {URL}/C0-T0-Z0-L0-Y0-X0.png
@@ -238,14 +235,21 @@ def real_stitched_with_gamma(dirname):
         max: 0.024
     }]
 
-    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles/
+    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles
     '''
 
     return np.load(Path(dirname, 'data/red_green_normalized.npy').resolve())
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def real_tiles_green_mask(dirname):
+    ''' Loads 256x256 px image tiles from npy files
+
+    The tiles originate from a 1024x1024 px file at {URL}/C1-T0-Z0-L0-Y0-X0.png
+
+    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles
+    '''
+
     return [
         [
             np.load(Path(dirname, 'data/green/0/0/tile.npy').resolve()),
@@ -274,7 +278,7 @@ def real_tiles_green_mask(dirname):
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_green_mask():
     ''' Nine 2x2 pixel tiles, green channel
     '''
@@ -290,7 +294,7 @@ def level0_tiles_green_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_red_mask():
     ''' Nine 2x2 pixel tiles, red channel
     '''
@@ -306,7 +310,7 @@ def level0_tiles_red_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_magenta_mask():
     ''' Nine 2x2 pixel tiles, magenta channel
     '''
@@ -322,7 +326,7 @@ def level0_tiles_magenta_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_blue_mask():
     ''' Nine 2x2 pixel tiles, blue channel
     '''
@@ -338,7 +342,7 @@ def level0_tiles_blue_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_orange_mask():
     ''' Nine 2x2 pixel tiles, orange channel
     '''
@@ -354,7 +358,7 @@ def level0_tiles_orange_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles_cyan_mask():
     ''' Nine 2x2 pixel tiles, cyan channel
     '''
@@ -370,7 +374,7 @@ def level0_tiles_cyan_mask():
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_tiles(color_black, color_red, color_green, color_blue,
                  color_magenta, color_cyan, color_orange):
     ''' Nine 2x2 pixel tiles in a square checkerboard
@@ -393,7 +397,7 @@ def level0_tiles(color_black, color_red, color_green, color_blue,
     ] * 3
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_scaled_4x4(color_black, color_red, color_blue,
                       color_magenta, color_orange):
     ''' One 4x4 image scaled from the 6x6 pixels of level 0
@@ -412,7 +416,7 @@ def level0_scaled_4x4(color_black, color_red, color_blue,
     ])
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_stitched_green_mask():
     ''' One 6x6 pixel green channel stitched from nine tiles
     '''
@@ -425,7 +429,7 @@ def level0_stitched_green_mask():
     return np.array([row_0, row_1] * 3, dtype=np.uint8)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level0_stitched(color_black, color_red, color_green, color_blue,
                     color_magenta, color_cyan, color_orange):
     ''' One 6x6 pixel image stitched from nine tiles
@@ -443,7 +447,7 @@ def level0_stitched(color_black, color_red, color_green, color_blue,
     return np.array([row_0, row_1] * 3)
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level1_tiles(color_half_mean_red_green,
                  color_half_mean_blue_magenta,
                  color_half_mean_cyan_orange):
@@ -482,7 +486,7 @@ def level1_tiles(color_half_mean_red_green,
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level1_tile_list():
 
     return [
@@ -493,7 +497,7 @@ def level1_tile_list():
     ]
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def level1_stitched(color_half_mean_red_green,
                     color_half_mean_blue_magenta,
                     color_half_mean_cyan_orange):
