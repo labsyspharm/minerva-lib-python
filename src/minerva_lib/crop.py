@@ -20,18 +20,19 @@ def scale_image_nearest_neighbor(source, factor):
 
     factors = [factor, factor, 1]
 
+    # The output will have the same number of color channels as the source
     out_shape = [int(round(a * b)) for a, b in zip(source.shape, factors)]
     out_max_x = out_shape[1] - 1
     out_max_y = out_shape[0] - 1
-    out = np.zeros(out_shape)
+    output = np.zeros(out_shape)
 
     for source_x in range(0, source.shape[1]):
         for source_y in range(0, source.shape[0]):
             out_x = min(int(round(source_x * factor)), out_max_x)
             out_y = min(int(round(source_y * factor)), out_max_y)
-            out[out_y, out_x] = source[source_y, source_x]
+            output[out_y, out_x] = source[source_y, source_x]
 
-    return out
+    return output
 
 
 def get_optimum_pyramid_level(input_shape, level_count,
