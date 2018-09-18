@@ -35,40 +35,43 @@ def scale_image_nearest_neighbor(source, factor):
 
 
 def get_optimum_pyramid_level(input_shape, level_count,
-                              max_size=None, round_up=True):
-    ''' Gives a pyramid level that scales a region near a maximum size.
+                              output_size, prefer_higher_resolution):
+    ''' Returns nearest available pyramid level for a resolution near the
+        ideal resolution needed to render an image region at the desired
+        output size.
 
     Arguments:
         input_shape: The width, height at pyramid level 0
         level_count: Number of available pyramid levels
-        max_size: Maximum output image extent in x or y
-        round_up: Use higher-magnifcation pyramid level contained by
-                  `max_size` if true. Use lower-magnification pyramid
-                  level containing `max_size` if false.
+        output_size: Requested length of output image width/height
+        prefer_higher_resolution: Set true to return the pyramid level
+            for a resolution exceeding or equal to the ideal resolution.
+            Set false to return the pyramid level for a resolution
+            exceeding or equal to the ideal resolution.
 
     Returns:
         Integer power of 2 pyramid level
     '''
 
-    if max_size is None:
+    if output_size is None:
         return 0
 
     longest_side = max(*input_shape)
-    ratio_log = np.log2(longest_side / max_size)
+    ratio_log = np.log2(longest_side / output_size)
 
-    if round_up:
-        level = np.ceil(ratio_log)
-    else:
+    if prefer_higher_resolution:
         level = np.floor(ratio_log)
+    else:
+        level = np.ceil(ratio_log)
 
     return int(np.clip(level, 0, level_count - 1))
 
 
 def scale_by_pyramid_level(coordinates, level):
-    ''' Returns the coordinates measured at a given pyramid level.
+    ''' Divides the given coordinates to match the given power of 2 level.
 
     Arguments:
-        coordrnates: Coordinates to downscale by _level_
+        coordinates: Coordinates to downscale by _level_
         level: Integer power of 2 pyramid level
 
     Returns:
@@ -76,7 +79,7 @@ def scale_by_pyramid_level(coordinates, level):
     '''
 
     scaled_coords = np.array(coordinates) / (2 ** level)
-    return np.int64(np.floor(scaled_coords))
+    return np.int64(np.round(scaled_coords))
 
 
 def get_tile_start(tile_size, crop_origin):
@@ -123,16 +126,16 @@ def get_subregion(indices, tile_size, crop_origin, crop_size):
         crop_size: width, height of requested image region
 
     Returns:
-        The part of the tile within the requested region
-        Subregion start, end relative to origin of tile
+        The part of the tile within the resulting image
     '''
 
     tile_start = np.int64(indices) * tile_size
     crop_end = np.int64(crop_origin) + crop_size
     tile_end = tile_start + tile_size
 
-    # Should be true that 0 <= start_uv < end_uv <= tile_size
+    # at the start of the tile or the start of the requested region
     start_uv = np.maximum(crop_origin, tile_start) - tile_start
+    # at the end of the tile or the end of the requested region
     end_uv = np.minimum(tile_end, crop_end) - tile_start
 
     return [start_uv, end_uv]
@@ -153,12 +156,12 @@ def get_position(indices, tile_size, crop_origin):
 
     tile_start = np.int64(indices) * tile_size
 
-    # Should never be negative
+    # At the start of the tile or the start of the requested region
     return np.maximum(crop_origin, tile_start) - crop_origin
 
 
 def validate_region_bounds(crop_origin, crop_size, image_size):
-    ''' Decides if the image contains the requested image region.
+    ''' Determines if the image contains the requested image region.
 
     Args:
         crop_origin: x, y origin of requested image region
@@ -183,7 +186,7 @@ def validate_region_bounds(crop_origin, crop_size, image_size):
 
 
 def select_tiles(tile_size, crop_origin, crop_size):
-    ''' Selects tile indices to fill the requested region.
+    ''' Selects the tile indices necessary to populate the requested image region.
 
     Args:
         tile_size: width, height of one tile
@@ -202,12 +205,12 @@ def select_tiles(tile_size, crop_origin, crop_size):
 
 
 def stitch_tile(out, subregion, position, tile):
-    ''' Positions this tile into the requested region.
+    ''' Positions this tile into the resulting image.
 
     Args:
         out: 2D numpy array to contain stitched channels
-        subregion: The part of the tile within the requested region
-        position: Origin of tile in requested region
+        subregion: The part of the tile within the resulting image
+        position: Origin of tile in resulting image
         tile: 2D numpy array to stitch within _out_
 
     Returns:
@@ -230,9 +233,12 @@ def stitch_tile(out, subregion, position, tile):
 
 
 def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
-    ''' Positions all image tiles and channels in the requested region.
+    ''' Positions all image tiles and channels in the resulting image.
 
-    Args:
+    Only the necessary subregions of tiles are combined to produce
+    a resulting image matching exactly the size specified.
+
+    Argsr
         tiles: Iterator of tiles to blend. Each dict in the
             iterator must have the following rendering settings:
             {
@@ -251,8 +257,6 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
         returns a float32 RGB color image with shape
         `(height, width, 3)` and values in the range 0 to 1
     '''
-    inputs = [t for t in tiles if t]
-
     crop_w, crop_h = crop_size
     stitched = np.zeros((crop_h, crop_w, 3))
 
@@ -290,7 +294,7 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
         return stitch_tile(array, subregion, position, image)
 
     # Composite all tiles with same indices and stitch
-    composited = reduce(composite, inputs, {}).values()
+    composited = reduce(composite, tiles, {}).values()
     stitched = reduce(stitch, composited, stitched)
 
     # Return gamma correct image within 0, 1
