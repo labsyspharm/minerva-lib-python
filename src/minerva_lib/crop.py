@@ -83,73 +83,73 @@ def scale_by_pyramid_level(coordinates, level):
     return np.int64(np.round(scaled_coords))
 
 
-def get_tile_start(tile_size, crop_origin):
+def get_tile_start(tile_size, output_origin):
     ''' Returns the indices of the first tile in the region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
 
     Returns:
         Two-item int64 array i, j tile indices
     '''
-    start = np.array(crop_origin)
+    start = np.array(output_origin)
 
     return np.int64(np.floor(start / tile_size))
 
 
-def get_tile_count(tile_size, crop_origin, crop_size):
+def get_tile_count(tile_size, output_origin, output_size):
     ''' Returns the number of tiles in the region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
         image_size: width, height of full image
 
     Returns:
         Two-item int64 array i, j tile indices
     '''
-    end = np.array(crop_origin) + crop_size
+    end = np.array(output_origin) + output_size
 
     return np.int64(np.ceil(end / tile_size))
 
 
-def get_subregion(indices, tile_size, crop_origin, crop_size):
+def get_subregion(indices, tile_size, output_origin, output_size):
     '''Determines the region within this specific tile
     that is required for the requested image region.
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
 
     Returns:
         The part of the tile within the resulting image
     '''
 
     tile_start = np.int64(indices) * tile_size
-    crop_end = np.int64(crop_origin) + crop_size
+    output_end = np.int64(output_origin) + output_size
     tile_end = tile_start + tile_size
 
     # at the start of the tile or the start of the requested region
-    start_uv = np.maximum(crop_origin, tile_start) - tile_start
+    start_uv = np.maximum(output_origin, tile_start) - tile_start
     # at the end of the tile or the end of the requested region
-    end_uv = np.minimum(tile_end, crop_end) - tile_start
+    end_uv = np.minimum(tile_end, output_end) - tile_start
 
     return [start_uv, end_uv]
 
 
-def get_position(indices, tile_size, crop_origin):
-    ''' Determines where in the requested image to insert
+def get_position(indices, tile_size, output_origin):
+    ''' Determines where in the resulting image to insert
     the required region from this specific tile.
 
     Args:
         indices: integer i, j tile indices
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
+        output_origin: x, y origin of requested image region
 
     Returns:
         Position of tile region within requested image region
@@ -158,47 +158,47 @@ def get_position(indices, tile_size, crop_origin):
     tile_start = np.int64(indices) * tile_size
 
     # At the start of the tile or the start of the requested region
-    return np.maximum(crop_origin, tile_start) - crop_origin
+    return np.maximum(output_origin, tile_start) - output_origin
 
 
-def validate_region_bounds(crop_origin, crop_size, image_size):
+def validate_region_bounds(output_origin, output_size, image_size):
     ''' Determines if the image contains the requested image region.
 
     Args:
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
         image_size: width, height of full image
 
     Returns:
         True if the requested image region is valid
     '''
 
-    if any(np.less_equal(crop_size, 0)):
+    if any(np.less_equal(output_size, 0)):
         return False
 
-    if any(np.less(crop_origin, 0)):
+    if any(np.less(output_origin, 0)):
         return False
 
-    crop_end = np.array(crop_origin) + crop_size
-    if any(np.less(image_size, crop_end)):
+    output_end = np.array(output_origin) + output_size
+    if any(np.less(image_size, output_end)):
         return False
 
     return True
 
 
-def select_tiles(tile_size, crop_origin, crop_size):
+def select_tiles(tile_size, output_origin, output_size):
     ''' Selects the tile indices necessary to populate the requested image region.
 
     Args:
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
 
     Returns:
         List of integer i, j tile indices
     '''
-    start_ij = get_tile_start(tile_size, crop_origin)
-    count_ij = get_tile_count(tile_size, crop_origin, crop_size)
+    start_ij = get_tile_start(tile_size, output_origin)
+    count_ij = get_tile_count(tile_size, output_origin, output_size)
 
     # Calculate all indices between first and last
     offsets = np.argwhere(np.ones(count_ij - start_ij))
@@ -233,7 +233,7 @@ def stitch_tile(out, subregion, position, tile):
     return out
 
 
-def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
+def stitch_tiles(tiles, tile_size, output_origin, output_size):
     ''' Positions all image tiles and channels in the resulting image.
 
     Only the necessary subregions of tiles are combined to produce
@@ -250,16 +250,16 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
                 max: Threshhold range maximum, float within 0, 1
             }
         tile_size: width, height of one tile
-        crop_origin: x, y origin of requested image region
-        crop_size: width, height of requested image region
+        output_origin: x, y origin of requested image region
+        output_size: width, height of requested image region
 
     Returns:
         For a given `shape` of `(width, height)`,
         returns a float32 RGB color image with shape
         `(height, width, 3)` and values in the range 0 to 1
     '''
-    crop_w, crop_h = crop_size
-    stitched = np.zeros((crop_h, crop_w, 3))
+    output_w, output_h = output_size
+    stitched = np.zeros((output_h, output_w, 3))
 
     def composite(tile_hash, tile):
         ''' Composite all tiles with same indices
@@ -289,8 +289,8 @@ def stitch_tiles(tiles, tile_size, crop_origin, crop_size):
         image = tile['image']
         idx = tuple(tile['indices'])
 
-        subregion = get_subregion(idx, tile_size, crop_origin, crop_size)
-        position = get_position(idx, tile_size, crop_origin)
+        subregion = get_subregion(idx, tile_size, output_origin, output_size)
+        position = get_position(idx, tile_size, output_origin)
 
         return stitch_tile(array, subregion, position, image)
 
