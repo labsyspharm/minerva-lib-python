@@ -137,12 +137,12 @@ def num_levels_2():
 
 
 @pytest.fixture(scope='module')
-def round_up():
+def prefer_higher():
     return True
 
 
 @pytest.fixture(scope='module')
-def round_down():
+def prefer_lower():
     return False
 
 
@@ -529,26 +529,26 @@ def test_scale_image_invalid_factor(level0_stitched):
         scale_image_nearest_neighbor(level0_stitched, 0)
 
 
-def test_get_optimum_pyramid_level_up(level0_shape_6x6, num_levels_2,
-                                      max_4, round_up):
-    ''' Test rounding up to pyramid level contained by maximum'''
-
-    expected = 1
-
-    result = get_optimum_pyramid_level(level0_shape_6x6, num_levels_2,
-                                       max_4, round_up)
-
-    assert expected == result
-
-
-def test_get_optimum_pyramid_level_down(level0_shape_6x6, num_levels_2,
-                                        max_4, round_down):
-    ''' Test rounding down to pyramid level containing maximum'''
+def test_get_optimum_pyramid_level_higher(level0_shape_6x6, num_levels_2,
+                                          max_4, prefer_higher):
+    ''' Test higher resolution than needed for output shape'''
 
     expected = 0
 
     result = get_optimum_pyramid_level(level0_shape_6x6, num_levels_2,
-                                       max_4, round_down)
+                                       max_4, prefer_higher)
+
+    assert expected == result
+
+
+def test_get_optimum_pyramid_level_lower(level0_shape_6x6, num_levels_2,
+                                         max_4, prefer_lower):
+    ''' Test lower resolution than needed for output shape'''
+
+    expected = 1
+
+    result = get_optimum_pyramid_level(level0_shape_6x6, num_levels_2,
+                                       max_4, prefer_lower)
 
     assert expected == result
 
