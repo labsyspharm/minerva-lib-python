@@ -8,7 +8,8 @@ from minerva_lib.crop import scale_image_nearest_neighbor, get_tile_start, \
                              get_optimum_pyramid_level, get_tile_count, \
                              scale_by_pyramid_level, select_tiles, \
                              validate_region_bounds, select_subregion, \
-                             select_position, stitch_tile, stitch_tiles
+                             select_position, composite_subtile, \
+                             composite_subtiles
 from minerva_lib import skimage_inline as ski
 
 
@@ -417,14 +418,16 @@ def level0_scaled_4x4(color_black, color_red, color_blue,
 
 
 @pytest.fixture(scope='module')
-def level0_stitched_green_mask():
+def level0_stitched_green_rgba(color_black, color_green):
     ''' One 6x6 pixel green channel stitched from nine tiles
     '''
     row_0 = [
-        0, 255, 0, 0, 0, 0
+        color_black, color_green, color_black,
+        color_black, color_black, color_black
     ]
     row_1 = [
-        0, 0, 0, 0, 0, 0
+        color_black, color_black, color_black,
+        color_black, color_black, color_black
     ]
     return np.array([row_0, row_1] * 3, dtype=np.uint8)
 
@@ -692,54 +695,66 @@ def test_select_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_stitch_tile_overwrite(level0_tiles_red_mask, level0_tiles_green_mask,
-                               tile_shape_2x2, tile_subregion_2x2):
-    ''' Ensure stiching overwrites existing content of stitched region'''
+def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
+                                     level0_tiles_green_mask, color_green,
+                                     tile_shape_2x2, tile_subregion_2x2):
+    ''' Ensure stiching composites existing content of stitched region'''
 
     subregion = tile_subregion_2x2
-    overwritten = level0_tiles_red_mask[0][0]
-    expected = level0_tiles_green_mask[0][0]
+    first_tile = level0_tiles_red_mask[0][0]
+    second_tile = level0_tiles_green_mask[0][0]
 
-    result = np.zeros(tile_shape_2x2)
+    expected = np.array([
+        [[0, 0, 0], color_green],
+        [color_red, [0, 0, 0]],
+    ])
 
-    result = stitch_tile(result, subregion, [0, 0], overwritten)
-    result = stitch_tile(result, subregion, [0, 0], expected)
+    result = np.zeros(tile_shape_2x2 + [3])
+
+    result = composite_subtile(result, subregion, [0, 0], first_tile,
+                               color_red, 0, 1)
+    result = composite_subtile(result, subregion, [0, 0], second_tile,
+                               color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_stitch_tile_level0(level0_stitched_green_mask, level0_shape_6x6,
-                            level0_tiles_green_mask, tile_subregion_2x2):
+def test_composite_subtile_level0(level0_stitched_green_rgba, level0_shape_6x6,
+                                  level0_tiles_green_mask, tile_subregion_2x2,
+                                  color_green):
     ''' Test correct cropping of single channel without rendering '''
 
-    expected = level0_stitched_green_mask
+    expected = level0_stitched_green_rgba
 
     subregion = tile_subregion_2x2
     tiles = level0_tiles_green_mask
-    result = np.zeros(level0_shape_6x6)
+    result = np.zeros(level0_shape_6x6 + [3])
 
-    result = stitch_tile(result, subregion, [0, 0], tiles[0][0])
-    result = stitch_tile(result, subregion, [0, 2], tiles[1][0])
-    result = stitch_tile(result, subregion, [0, 4], tiles[2][0])
+    result = composite_subtile(result, subregion, [0, 0], tiles[0][0],
+                               color_green, 0, 1)
+    result = composite_subtile(result, subregion, [0, 2], tiles[1][0],
+                               color_green, 0, 1)
+    result = composite_subtile(result, subregion, [0, 4], tiles[2][0],
+                               color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_stitch_tiles_level0(level0_tiles_green_mask,
-                             level0_tiles_red_mask,
-                             level0_tiles_magenta_mask,
-                             level0_tiles_blue_mask,
-                             level0_tiles_orange_mask,
-                             level0_tiles_cyan_mask,
-                             color_red, color_green, color_blue,
-                             color_magenta, color_cyan, color_orange,
-                             tile_shape_2x2, origin_zero, level0_shape_6x6,
-                             level0_stitched):
+def test_composite_subtiles_level0(level0_tiles_green_mask,
+                                   level0_tiles_red_mask,
+                                   level0_tiles_magenta_mask,
+                                   level0_tiles_blue_mask,
+                                   level0_tiles_orange_mask,
+                                   level0_tiles_cyan_mask,
+                                   color_red, color_green, color_blue,
+                                   color_magenta, color_cyan, color_orange,
+                                   tile_shape_2x2, origin_zero,
+                                   level0_shape_6x6, level0_stitched):
     ''' Ensure expected rendering of multi-tile multi-channel image '''
 
     expected = ski.adjust_gamma(level0_stitched, 1 / 2.2)
 
-    result = stitch_tiles([{
+    result = composite_subtiles([{
         'min': 0,
         'max': 1,
         'indices': [0, 0],
@@ -852,9 +867,9 @@ def test_stitch_tiles_level0(level0_tiles_green_mask,
     np.testing.assert_allclose(expected, result)
 
 
-def test_stitch_tiles_nonsquare(hd_tiles_green_mask, origin_zero,
-                                color_green, tile_shape_1024x1024,
-                                hd_shape_1920x1080, hd_stitched):
+def test_composite_subtiles_nonsquare(hd_tiles_green_mask, origin_zero,
+                                      color_green, tile_shape_1024x1024,
+                                      hd_shape_1920x1080, hd_stitched):
     ''' Ensure nonsquare image is stitched correctly with square tiles'''
 
     expected = ski.adjust_gamma(hd_stitched, 1 / 2.2)
@@ -871,18 +886,18 @@ def test_stitch_tiles_nonsquare(hd_tiles_green_mask, origin_zero,
                 'color': color_green
             }]
 
-    result = stitch_tiles(inputs, tile_shape_1024x1024,
-                          origin_zero, hd_shape_1920x1080)
+    result = composite_subtiles(inputs, tile_shape_1024x1024,
+                                origin_zero, hd_shape_1920x1080)
 
     np.testing.assert_allclose(expected, result)
 
 
-def test_stitch_tiles_real(real_tiles_green_mask,
-                           real_tiles_red_mask,
-                           color_red, color_green,
-                           tile_shape_256x256, origin_zero,
-                           real_shape_1024x1024,
-                           real_stitched_with_gamma):
+def test_composite_subtiles_real(real_tiles_green_mask,
+                                 real_tiles_red_mask,
+                                 color_red, color_green,
+                                 tile_shape_256x256, origin_zero,
+                                 real_shape_1024x1024,
+                                 real_stitched_with_gamma):
     ''' Ensure 1024 x 1024 image matches image rendered without tiling '''
 
     expected = real_stitched_with_gamma
@@ -905,7 +920,7 @@ def test_stitch_tiles_real(real_tiles_green_mask,
                 'color': color_red
             }]
 
-    result = stitch_tiles(inputs, tile_shape_256x256,
-                          origin_zero, real_shape_1024x1024)
+    result = composite_subtiles(inputs, tile_shape_256x256,
+                                origin_zero, real_shape_1024x1024)
 
     np.testing.assert_allclose(expected, np.uint8(255*result))
