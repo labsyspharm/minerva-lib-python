@@ -1,4 +1,3 @@
-from functools import reduce
 import numpy as np
 from .blend import composite_channel
 from . import skimage_inline as ski
@@ -205,14 +204,18 @@ def select_tiles(tile_size, output_origin, output_size):
     return (start_ij + offsets).tolist()
 
 
-def stitch_tile(out, subregion, position, tile):
-    ''' Positions this tile into the resulting image.
+def composite_subtile(out, subregion, position, tile,
+                      color, range_min, range_max):
+    ''' Composites a subtile into an output image.
 
     Args:
-        out: 2D numpy array to contain stitched channels
+        out: RGB numpy array to contain stitched channels
         subregion: The part of the tile within the resulting image
         position: Origin of tile in resulting image
         tile: 2D numpy array to stitch within _out_
+        color: Color as r, g, b float array within 0, 1
+        range_min: Threshhold range minimum, float within 0, 1
+        range_max: Threshhold range maximum, float within 0, 1
 
     Returns:
         A reference to _out_
@@ -227,13 +230,14 @@ def stitch_tile(out, subregion, position, tile):
     x_0, y_0 = position
     y_1, x_1 = [y_0, x_0] + shape[:2]
 
-    # Assign subregion within boundary
-    out[y_0:y_1, x_0:x_1] = subtile
-
+    # Composite the subtile into the output
+    composite_channel(out[y_0:y_1, x_0:x_1], subtile,
+                      color, range_min, range_max,
+                      out[y_0:y_1, x_0:x_1])
     return out
 
 
-def stitch_tiles(tiles, tile_size, output_origin, output_size):
+def composite_subtiles(tiles, tile_size, output_origin, output_size):
     ''' Positions all image tiles and channels in the resulting image.
 
     Only the necessary subregions of tiles are combined to produce
@@ -259,45 +263,18 @@ def stitch_tiles(tiles, tile_size, output_origin, output_size):
         `(height, width, 3)` and values in the range 0 to 1
     '''
     output_w, output_h = output_size
-    stitched = np.zeros((output_h, output_w, 3))
+    out = np.zeros((output_h, output_w, 3))
 
-    def composite(tile_hash, tile):
-        ''' Composite all tiles with same indices
-        '''
-
-        idx = tuple(tile['indices'])
-        tile_h, tile_w = tile['image'].shape
-
-        if idx not in tile_hash:
-            tile_buffer = {
-                'indices': idx,
-                'image': np.zeros((tile_h, tile_w, 3), dtype=np.float32)
-            }
-            tile_hash[idx] = tile_buffer
-
-        composite_channel(tile_hash[idx]['image'][:tile_h, :tile_w],
+    for tile in tiles:
+        idx = tile['indices']
+        subregion = select_subregion(idx, tile_size,
+                                     output_origin, output_size)
+        position = select_position(idx, tile_size,
+                                   output_origin)
+        composite_subtile(out, subregion, position,
                           tile['image'], tile['color'],
-                          tile['min'], tile['max'],
-                          tile_hash[idx]['image'][:tile_h, :tile_w])
-
-        return tile_hash
-
-    def stitch(array, tile):
-        ''' Stitch tile into an array
-        '''
-
-        image = tile['image']
-        idx = tuple(tile['indices'])
-
-        subregion = select_subregion(idx, tile_size, output_origin, output_size)
-        position = select_position(idx, tile_size, output_origin)
-
-        return stitch_tile(array, subregion, position, image)
-
-    # Composite all tiles with same indices and stitch
-    composited = reduce(composite, tiles, {}).values()
-    stitched = reduce(stitch, composited, stitched)
+                          tile['min'], tile['max'])
 
     # Return gamma correct image within 0, 1
-    np.clip(stitched, 0, 1, out=stitched)
-    return ski.adjust_gamma(stitched, 1 / 2.2)
+    np.clip(out, 0, 1, out=out)
+    return ski.adjust_gamma(out, 1 / 2.2)
