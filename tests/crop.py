@@ -7,8 +7,8 @@ from inspect import currentframe, getframeinfo
 from minerva_lib.crop import scale_image_nearest_neighbor, get_tile_start, \
                              get_optimum_pyramid_level, get_tile_count, \
                              scale_by_pyramid_level, select_tiles, \
-                             validate_region_bounds, get_subregion, \
-                             get_position, stitch_tile, stitch_tiles
+                             validate_region_bounds, select_subregion, \
+                             select_position, stitch_tile, stitch_tiles
 from minerva_lib import skimage_inline as ski
 
 
@@ -667,8 +667,8 @@ def test_select_tiles_level1(origin_zero, tile_shape_2x2,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_get_subregion_1_1(origin_zero, tile_shape_2x2,
-                           level1_shape_3x3, indices_1_1):
+def test_select_subregion_1_1(origin_zero, tile_shape_2x2,
+                              level1_shape_3x3, indices_1_1):
     ''' Ensure partial tile is selected when full tile unnecessary '''
 
     expected = [
@@ -676,18 +676,18 @@ def test_get_subregion_1_1(origin_zero, tile_shape_2x2,
         [1, 1]
     ]
 
-    result = get_subregion(indices_1_1, tile_shape_2x2,
-                           origin_zero, level1_shape_3x3)
+    result = select_subregion(indices_1_1, tile_shape_2x2,
+                              origin_zero, level1_shape_3x3)
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_get_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
+def test_select_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
     ''' Test ability to position tile in middle of image '''
 
     expected = [2, 2]
 
-    result = get_position(indices_1_1, tile_shape_2x2, origin_zero)
+    result = select_position(indices_1_1, tile_shape_2x2, origin_zero)
 
     np.testing.assert_array_equal(expected, result)
 
