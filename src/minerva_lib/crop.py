@@ -48,7 +48,7 @@ def get_optimum_pyramid_level(input_shape, level_count,
         prefer_higher_resolution: Set true to return the pyramid level
             for a resolution exceeding or equal to the ideal resolution.
             Set false to return the pyramid level for a resolution
-            exceeding or equal to the ideal resolution.
+            less than or equal to the ideal resolution.
 
     Returns:
         Integer power of 2 pyramid level
