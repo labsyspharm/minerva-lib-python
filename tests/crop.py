@@ -9,7 +9,7 @@ from minerva_lib.crop import scale_image_nearest_neighbor, get_tile_start, \
                              scale_by_pyramid_level, select_tiles, \
                              validate_region_bounds, select_subregion, \
                              select_position, composite_subtile, \
-                             composite_subtiles
+                             composite_subtiles, extract_subtile
 from minerva_lib import skimage_inline as ski
 
 
@@ -80,12 +80,17 @@ def origin_zero():
 
 
 @pytest.fixture(scope='module')
-def origin_0_1():
+def origin_1_0():
     return (1, 0)
 
 
 @pytest.fixture(scope='module')
 def shape_0x0():
+    return (0, 0)
+
+
+@pytest.fixture(scope='module')
+def indices_0_0():
     return (0, 0)
 
 
@@ -607,20 +612,20 @@ def test_validate_region_whole(origin_zero, level0_shape_6x6):
     assert result
 
 
-def test_validate_region_within(origin_0_1, tile_shape_2x2,
+def test_validate_region_within(origin_1_0, tile_shape_2x2,
                                 level0_shape_6x6):
     ''' Ensure partial region is validated '''
 
-    result = validate_region_bounds(origin_0_1, tile_shape_2x2,
+    result = validate_region_bounds(origin_1_0, tile_shape_2x2,
                                     level0_shape_6x6)
 
     assert result
 
 
-def test_validate_region_exceeds(origin_0_1, level0_shape_6x6):
+def test_validate_region_exceeds(origin_1_0, level0_shape_6x6):
     ''' Ensure excessively large region is invalidated '''
 
-    result = validate_region_bounds(origin_0_1, level0_shape_6x6,
+    result = validate_region_bounds(origin_1_0, level0_shape_6x6,
                                     level0_shape_6x6)
 
     assert not result
@@ -646,7 +651,7 @@ def test_validate_region_negative(origin_negative, tile_shape_2x2,
     assert not result
 
 
-def test_select_tiles_level0(origin_0_1, tile_shape_2x2):
+def test_select_tiles_level0(origin_1_0, tile_shape_2x2):
     ''' Ensure selection of two tiles for partial region '''
 
     expected = [
@@ -654,7 +659,7 @@ def test_select_tiles_level0(origin_0_1, tile_shape_2x2):
         (1, 0)
     ]
 
-    result = select_tiles(tile_shape_2x2, origin_0_1, tile_shape_2x2)
+    result = select_tiles(tile_shape_2x2, origin_1_0, tile_shape_2x2)
 
     np.testing.assert_array_equal(expected, result)
 
@@ -672,7 +677,7 @@ def test_select_tiles_level1(origin_zero, tile_shape_2x2,
 
 def test_select_subregion_1_1(origin_zero, tile_shape_2x2,
                               level1_shape_3x3, indices_1_1):
-    ''' Ensure partial tile is selected when full tile unnecessary '''
+    ''' Ensure partial tile is selected when full tile unavailable '''
 
     expected = [
         (0, 0),
@@ -681,6 +686,19 @@ def test_select_subregion_1_1(origin_zero, tile_shape_2x2,
 
     result = select_subregion(indices_1_1, tile_shape_2x2,
                               origin_zero, level1_shape_3x3)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_extract_subtile_1_1(origin_1_0, tile_shape_2x2,
+                             indices_0_0, level1_tiles):
+    ''' Ensure partial tile is extracted when full tile unnecessary '''
+
+    tile = level1_tiles[0][0]
+    expected = tile[1:, :]
+
+    result = extract_subtile(indices_0_0, tile_shape_2x2,
+                             origin_1_0, tile_shape_2x2, tile)
 
     np.testing.assert_array_equal(expected, result)
 
@@ -697,10 +715,9 @@ def test_select_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
 
 def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
                                      level0_tiles_green_mask, color_green,
-                                     tile_shape_2x2, tile_subregion_2x2):
+                                     tile_shape_2x2):
     ''' Ensure stiching composites existing content of stitched region'''
 
-    subregion = tile_subregion_2x2
     first_tile = level0_tiles_red_mask[0][0]
     second_tile = level0_tiles_green_mask[0][0]
 
@@ -711,30 +728,28 @@ def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
 
     result = np.zeros(tile_shape_2x2 + (3,))
 
-    result = composite_subtile(result, subregion, (0, 0), first_tile,
+    result = composite_subtile(result, first_tile, (0, 0),
                                color_red, 0, 1)
-    result = composite_subtile(result, subregion, (0, 0), second_tile,
+    result = composite_subtile(result, second_tile, (0, 0),
                                color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
 
 
 def test_composite_subtile_level0(level0_stitched_green_rgba, level0_shape_6x6,
-                                  level0_tiles_green_mask, tile_subregion_2x2,
-                                  color_green):
+                                  level0_tiles_green_mask, color_green):
     ''' Test correct cropping of single channel without rendering '''
 
     expected = level0_stitched_green_rgba
 
-    subregion = tile_subregion_2x2
     tiles = level0_tiles_green_mask
     result = np.zeros(level0_shape_6x6 + (3,))
 
-    result = composite_subtile(result, subregion, (0, 0), tiles[0][0],
+    result = composite_subtile(result, tiles[0][0], (0, 0),
                                color_green, 0, 1)
-    result = composite_subtile(result, subregion, (2, 0), tiles[1][0],
+    result = composite_subtile(result, tiles[1][0], (2, 0),
                                color_green, 0, 1)
-    result = composite_subtile(result, subregion, (4, 0), tiles[2][0],
+    result = composite_subtile(result, tiles[2][0], (4, 0),
                                color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
