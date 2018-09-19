@@ -7,11 +7,11 @@ def scale_image_nearest_neighbor(source, factor):
     ''' Resizes an image by a given factor using nearest neighbor pixels.
 
     Arguments:
-        source: A 2D or 3D numpy array to resize
-        factor: The ratio of `out` shape over `source` shape
+        source: A 2D grayscale or rgb numpy array to resize
+        factor: The ratio of output shape over source shape
 
     Returns:
-        A numpy array with the resized `source`
+        A numpy array with the resized source image
     '''
 
     if factor <= 0:
