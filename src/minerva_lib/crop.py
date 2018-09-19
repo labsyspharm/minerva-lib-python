@@ -232,8 +232,8 @@ def composite_subtile(out, subtile, position, color, range_min, range_max):
         position: Tuple of integer y, x position of tile region
             within the resulting image
         color: Color as r, g, b float array within 0, 1
-        range_min: Threshhold range minimum, float within 0, 1
-        range_max: Threshhold range maximum, float within 0, 1
+        range_min: Threshold range minimum, float within 0, 1
+        range_max: Threshold range maximum, float within 0, 1
 
     Returns:
         A reference to _out_
@@ -256,15 +256,15 @@ def composite_subtiles(tiles, tile_shape, output_origin, output_shape):
     Only the necessary subregions of tiles are combined to produce
     a resulting image matching exactly the size specified.
 
-    Argsr
+    Args
         tiles: Iterator of tiles to blend. Each dict in the
             iterator must have the following rendering settings:
             {
                 indices: Tuple of integer y, x tile indices
                 image: Numpy 2D image data of any type for a full tile
                 color: Color as r, g, b float array within 0, 1
-                min: Threshhold range minimum, float within 0, 1
-                max: Threshhold range maximum, float within 0, 1
+                min: Threshold range minimum, float within 0, 1
+                max: Threshold range maximum, float within 0, 1
             }
         tile_shape: Tuple of integer height, width of one tile
         output_origin: Tuple of integer y, x origin of resulting image
@@ -272,7 +272,7 @@ def composite_subtiles(tiles, tile_shape, output_origin, output_shape):
 
     Returns:
         A float32 RGB color image with each channel's shape matching the
-        ouptput_shape. Channels contain gamma-corrected values from 0 to 1.
+        output_shape. Channels contain gamma-corrected values from 0 to 1.
     '''
     output_h, output_w = output_shape
     out = np.zeros((output_h, output_w, 3))

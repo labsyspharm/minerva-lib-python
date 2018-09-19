@@ -666,7 +666,7 @@ def test_select_tiles_level0(origin_1_0, tile_shape_2x2):
 
 def test_select_tiles_level1(origin_zero, tile_shape_2x2,
                              level1_shape_3x3, level1_tile_list):
-    ''' Ensure selection of all avaialable tiles for full region '''
+    ''' Ensure selection of all available tiles for full region '''
 
     expected = level1_tile_list
 
@@ -716,7 +716,7 @@ def test_select_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
 def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
                                      level0_tiles_green_mask, color_green,
                                      tile_shape_2x2):
-    ''' Ensure stiching composites existing content of stitched region'''
+    ''' Ensure compositing with existing content of stitched region'''
 
     first_tile = level0_tiles_red_mask[0][0]
     second_tile = level0_tiles_green_mask[0][0]
@@ -885,7 +885,7 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
 def test_composite_subtiles_nonsquare(hd_tiles_green_mask, origin_zero,
                                       color_green, tile_shape_1024x1024,
                                       hd_shape_1080x1920, hd_stitched):
-    ''' Ensure nonsquare image is stitched correctly with square tiles'''
+    ''' Ensure non-square image is stitched correctly with square tiles'''
 
     expected = ski.adjust_gamma(hd_stitched, 1 / 2.2)
 
