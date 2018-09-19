@@ -37,24 +37,21 @@ def scale_image_nearest_neighbor(source, factor):
 def get_optimum_pyramid_level(input_shape, level_count,
                               output_size, prefer_higher_resolution):
     ''' Returns nearest available pyramid level for a resolution near the
-        ideal resolution needed to render an image region at the desired
-        output size.
+        ideal resolution needed to render an full resolution image region
+        at the desired downsampled output size.
 
     Arguments:
-        input_shape: The width, height at pyramid level 0
-        level_count: Number of available pyramid levels
-        output_size: Requested length of output image width/height
-        prefer_higher_resolution: Set true to return the pyramid level
+        input_shape: Tuple of integer height, width at full resolution
+        level_count: Integer number of available pyramid levels
+        output_size: Integer length of output image longest dimension
+        prefer_higher_resolution: Set True to return the pyramid level
             for a resolution exceeding or equal to the ideal resolution.
-            Set false to return the pyramid level for a resolution
+            Set False to return the pyramid level for a resolution
             less than or equal to the ideal resolution.
 
     Returns:
         Integer power of 2 pyramid level
     '''
-
-    if output_size is None:
-        return 0
 
     longest_side = max(*input_shape)
     ratio_log = np.log2(longest_side / output_size)
@@ -71,137 +68,139 @@ def scale_by_pyramid_level(coordinates, level):
     ''' Divides the given coordinates to match the given power of 2 level.
 
     Arguments:
-        coordinates: Coordinates to downscale by _level_
+        coordinates: Tuple of integer coordinates to downscale
         level: Integer power of 2 pyramid level
 
     Returns:
-        Downscaled integer coordinates
+        Tuple of downscaled integer coordinates
     '''
 
     scaled_coords = np.array(coordinates) / (2 ** level)
-    return np.int64(np.round(scaled_coords))
+    integer_coords = np.int64(np.round(scaled_coords))
+    return tuple(integer_coords.tolist())
 
 
-def get_tile_start(tile_size, output_origin):
+def get_tile_start(tile_shape, output_origin):
     ''' Returns the indices of the first tile in the region.
 
     Args:
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
 
     Returns:
-        Two-item int64 array i, j tile indices
+        Two-item int64 array of y, x tile indices
     '''
     start = np.array(output_origin)
 
-    return np.int64(np.floor(start / tile_size))
+    return np.int64(np.floor(start / tile_shape))
 
 
-def get_tile_count(tile_size, output_origin, output_size):
-    ''' Returns the number of tiles in the region.
+def get_tile_count(tile_shape, output_origin, output_shape):
+    ''' Count number of tiles along height, width of a region.
 
     Args:
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
-        image_size: width, height of full image
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
 
     Returns:
-        Two-item int64 array i, j tile indices
+        Two-item int64 array tile count along height, width
     '''
-    end = np.array(output_origin) + output_size
+    end = np.array(output_origin) + output_shape
 
-    return np.int64(np.ceil(end / tile_size))
+    return np.int64(np.ceil(end / tile_shape))
 
 
-def select_subregion(indices, tile_size, output_origin, output_size):
+def select_subregion(indices, tile_shape, output_origin, output_shape):
     '''Determines the region within this specific tile
     that is required for the resulting image.
 
     Args:
-        indices: integer i, j tile indices
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
+        indices: Tuple of integer y, x tile indices
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
 
     Returns:
-        The part of the tile within the resulting image
+        Start y, x and end y, x integer coordinates for the
+            part of the tile needed for the resulting image
     '''
 
-    tile_start = np.int64(indices) * tile_size
-    output_end = np.int64(output_origin) + output_size
-    tile_end = tile_start + tile_size
+    tile_start = np.int64(indices) * tile_shape
+    output_end = np.int64(output_origin) + output_shape
+    tile_end = tile_start + tile_shape
 
     # at the start of the tile or the start of the requested region
-    start_uv = np.maximum(output_origin, tile_start) - tile_start
+    y_0, x_0 = np.maximum(output_origin, tile_start) - tile_start
     # at the end of the tile or the end of the requested region
-    end_uv = np.minimum(tile_end, output_end) - tile_start
+    y_1, x_1 = np.minimum(tile_end, output_end) - tile_start
 
-    return [start_uv, end_uv]
+    return (y_0, x_0), (y_1, x_1)
 
 
-def select_position(indices, tile_size, output_origin):
+def select_position(indices, tile_shape, output_origin):
     ''' Determines where in the resulting image to insert
     the required region from this specific tile.
 
     Args:
-        indices: integer i, j tile indices
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
+        indices: Tuple of integer y, x tile indices
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
 
     Returns:
-        Position of tile region within resulting image
+        Tuple of integer y, x position of tile region within resulting image
     '''
 
-    tile_start = np.int64(indices) * tile_size
+    tile_start = np.int64(indices) * tile_shape
 
     # At the start of the tile or the start of the requested region
-    return np.maximum(output_origin, tile_start) - output_origin
+    y_0, x_0 = np.maximum(output_origin, tile_start) - output_origin
+
+    return (y_0, x_0)
 
 
-def validate_region_bounds(output_origin, output_size, image_size):
+def validate_region_bounds(output_origin, output_shape, image_shape):
     ''' Determines if the image contains the resulting image.
 
     Args:
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
-        image_size: width, height of full image
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
+        image_shape: Tuple of integer height, width of full image
 
     Returns:
         True if the resulting image is valid
     '''
 
-    if any(np.less_equal(output_size, 0)):
+    if any(np.less_equal(output_shape, 0)):
         return False
 
     if any(np.less(output_origin, 0)):
         return False
 
-    output_end = np.array(output_origin) + output_size
-    if any(np.less(image_size, output_end)):
+    output_end = np.array(output_origin) + output_shape
+    if any(np.less(image_shape, output_end)):
         return False
 
     return True
 
 
-def select_tiles(tile_size, output_origin, output_size):
+def select_tiles(tile_shape, output_origin, output_shape):
     ''' Selects the tile indices necessary to populate the resulting image.
 
     Args:
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
 
     Returns:
-        List of integer i, j tile indices
+        List of tuples of integer y, x tile indices
     '''
-    start_ij = get_tile_start(tile_size, output_origin)
-    count_ij = get_tile_count(tile_size, output_origin, output_size)
+    start_yx = get_tile_start(tile_shape, output_origin)
+    count_yx = get_tile_count(tile_shape, output_origin, output_shape)
 
     # Calculate all indices between first and last
-    offsets = np.argwhere(np.ones(count_ij - start_ij))
-    return (start_ij + offsets).tolist()
+    offsets = np.argwhere(np.ones(count_yx - start_yx))
+    return list(map(tuple, (start_yx + offsets).tolist()))
 
 
 def composite_subtile(out, subregion, position, tile,
@@ -209,10 +208,12 @@ def composite_subtile(out, subregion, position, tile,
     ''' Composites a subtile into an output image.
 
     Args:
-        out: RGB numpy array to contain stitched channels
-        subregion: The part of the tile within the resulting image
-        position: Origin of tile in resulting image
-        tile: 2D numpy array to stitch within _out_
+        out: RBG image float array to contain composited subtile
+        subregion: Start y, x and end y, x integer coordinates for the
+            part of the tile needed for the resulting image
+        position: Tuple of integer y, x position of tile region
+            within the resulting image
+        tile: 2D integer array for full tile to composite
         color: Color as r, g, b float array within 0, 1
         range_min: Threshhold range minimum, float within 0, 1
         range_max: Threshhold range maximum, float within 0, 1
@@ -222,13 +223,13 @@ def composite_subtile(out, subregion, position, tile,
     '''
 
     # Take subregion from tile
-    [u_0, v_0], [u_1, v_1] = subregion
-    subtile = tile[v_0:v_1, u_0:u_1]
+    [yt_0, xt_0], [yt_1, xt_1] = subregion
+    subtile = tile[yt_0:yt_1, xt_0:xt_1]
     shape = np.int64(subtile.shape)
 
     # Define boundary
-    x_0, y_0 = position
-    y_1, x_1 = [y_0, x_0] + shape[:2]
+    y_0, x_0 = position
+    y_1, x_1 = [y_0, x_0] + shape
 
     # Composite the subtile into the output
     composite_channel(out[y_0:y_1, x_0:x_1], subtile,
@@ -237,7 +238,7 @@ def composite_subtile(out, subregion, position, tile,
     return out
 
 
-def composite_subtiles(tiles, tile_size, output_origin, output_size):
+def composite_subtiles(tiles, tile_shape, output_origin, output_shape):
     ''' Positions all image tiles and channels in the resulting image.
 
     Only the necessary subregions of tiles are combined to produce
@@ -247,29 +248,28 @@ def composite_subtiles(tiles, tile_size, output_origin, output_size):
         tiles: Iterator of tiles to blend. Each dict in the
             iterator must have the following rendering settings:
             {
-                indices: Integer i, j tile indices
-                image: Numpy 2D image data of any type
+                indices: Tuple of integer y, x tile indices
+                image: Numpy 2D image data of any type for a full tile
                 color: Color as r, g, b float array within 0, 1
                 min: Threshhold range minimum, float within 0, 1
                 max: Threshhold range maximum, float within 0, 1
             }
-        tile_size: width, height of one tile
-        output_origin: x, y origin of resulting image
-        output_size: width, height of resulting image
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
 
     Returns:
-        For a given `shape` of `(width, height)`,
-        returns a float32 RGB color image with shape
-        `(height, width, 3)` and values in the range 0 to 1
+        A float32 RGB color image with each channel's shape matching the
+        ouptput_shape. Channels contain gamma-corrected values from 0 to 1.
     '''
-    output_w, output_h = output_size
+    output_h, output_w = output_shape
     out = np.zeros((output_h, output_w, 3))
 
     for tile in tiles:
         idx = tile['indices']
-        subregion = select_subregion(idx, tile_size,
-                                     output_origin, output_size)
-        position = select_position(idx, tile_size,
+        subregion = select_subregion(idx, tile_shape,
+                                     output_origin, output_shape)
+        position = select_position(idx, tile_shape,
                                    output_origin)
         composite_subtile(out, subregion, position,
                           tile['image'], tile['color'],
