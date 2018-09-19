@@ -71,60 +71,60 @@ def color_half_mean_cyan_orange():
 
 @pytest.fixture(scope='module')
 def origin_negative():
-    return [-1, 0]
+    return (0, -1)
 
 
 @pytest.fixture(scope='module')
 def origin_zero():
-    return [0, 0]
+    return (0, 0)
 
 
 @pytest.fixture(scope='module')
 def origin_0_1():
-    return [0, 1]
+    return (1, 0)
 
 
 @pytest.fixture(scope='module')
 def shape_0x0():
-    return [0, 0]
+    return (0, 0)
 
 
 @pytest.fixture(scope='module')
 def indices_1_1():
-    return [1, 1]
+    return (1, 1)
 
 
 @pytest.fixture(scope='module')
 def indices_3_3():
-    return [3, 3]
+    return (3, 3)
 
 
 @pytest.fixture(scope='module')
 def tile_shape_2x2():
-    return [2, 2]
+    return (2, 2)
 
 
 @pytest.fixture(scope='module')
 def tile_subregion_2x2():
     return [
-        [0, 0],
-        [2, 2]
+        (0, 0),
+        (2, 2)
     ]
 
 
 @pytest.fixture(scope='module')
 def level0_shape_6x6():
-    return [6, 6]
+    return (6, 6)
 
 
 @pytest.fixture(scope='module')
 def scaled_shape_4x4():
-    return [4, 4]
+    return (4, 4)
 
 
 @pytest.fixture(scope='module')
 def level1_shape_3x3():
-    return [3, 3]
+    return (3, 3)
 
 
 @pytest.fixture(scope='module')
@@ -179,17 +179,17 @@ def real_tiles_red_mask(dirname):
 
 @pytest.fixture(scope='module')
 def tile_shape_1024x1024():
-    return [1024, 1024]
+    return (1024, 1024)
 
 
 @pytest.fixture(scope='module')
-def hd_shape_1920x1080():
-    return [1920, 1080]
+def hd_shape_1080x1920():
+    return (1080, 1920)
 
 
 @pytest.fixture(scope='module')
-def hd_stitched(hd_shape_1920x1080, color_green):
-    hd_w, hd_h = hd_shape_1920x1080
+def hd_stitched(hd_shape_1080x1920, color_green):
+    hd_h, hd_w = hd_shape_1080x1920
     return np.ones((hd_h, hd_w, 3)) * color_green
 
 
@@ -209,12 +209,12 @@ def hd_tiles_green_mask():
 
 @pytest.fixture(scope='module')
 def tile_shape_256x256():
-    return [256, 256]
+    return (256, 256)
 
 
 @pytest.fixture(scope='module')
 def real_shape_1024x1024():
-    return [1024, 1024]
+    return (1024, 1024)
 
 
 @pytest.fixture(scope='module')
@@ -493,10 +493,10 @@ def level1_tiles(color_half_mean_red_green,
 def level1_tile_list():
 
     return [
-        [0, 0],
-        [0, 1],
-        [1, 0],
-        [1, 1],
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
     ]
 
 
@@ -650,8 +650,8 @@ def test_select_tiles_level0(origin_0_1, tile_shape_2x2):
     ''' Ensure selection of two tiles for partial region '''
 
     expected = [
-        [0, 0],
-        [0, 1]
+        (0, 0),
+        (1, 0)
     ]
 
     result = select_tiles(tile_shape_2x2, origin_0_1, tile_shape_2x2)
@@ -675,8 +675,8 @@ def test_select_subregion_1_1(origin_zero, tile_shape_2x2,
     ''' Ensure partial tile is selected when full tile unnecessary '''
 
     expected = [
-        [0, 0],
-        [1, 1]
+        (0, 0),
+        (1, 1)
     ]
 
     result = select_subregion(indices_1_1, tile_shape_2x2,
@@ -688,7 +688,7 @@ def test_select_subregion_1_1(origin_zero, tile_shape_2x2,
 def test_select_position_1_1(origin_zero, tile_shape_2x2, indices_1_1):
     ''' Test ability to position tile in middle of image '''
 
-    expected = [2, 2]
+    expected = (2, 2)
 
     result = select_position(indices_1_1, tile_shape_2x2, origin_zero)
 
@@ -709,11 +709,11 @@ def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
         [color_red, [0, 0, 0]],
     ])
 
-    result = np.zeros(tile_shape_2x2 + [3])
+    result = np.zeros(tile_shape_2x2 + (3,))
 
-    result = composite_subtile(result, subregion, [0, 0], first_tile,
+    result = composite_subtile(result, subregion, (0, 0), first_tile,
                                color_red, 0, 1)
-    result = composite_subtile(result, subregion, [0, 0], second_tile,
+    result = composite_subtile(result, subregion, (0, 0), second_tile,
                                color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
@@ -728,13 +728,13 @@ def test_composite_subtile_level0(level0_stitched_green_rgba, level0_shape_6x6,
 
     subregion = tile_subregion_2x2
     tiles = level0_tiles_green_mask
-    result = np.zeros(level0_shape_6x6 + [3])
+    result = np.zeros(level0_shape_6x6 + (3,))
 
-    result = composite_subtile(result, subregion, [0, 0], tiles[0][0],
+    result = composite_subtile(result, subregion, (0, 0), tiles[0][0],
                                color_green, 0, 1)
-    result = composite_subtile(result, subregion, [0, 2], tiles[1][0],
+    result = composite_subtile(result, subregion, (2, 0), tiles[1][0],
                                color_green, 0, 1)
-    result = composite_subtile(result, subregion, [0, 4], tiles[2][0],
+    result = composite_subtile(result, subregion, (4, 0), tiles[2][0],
                                color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
@@ -757,109 +757,109 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
     result = composite_subtiles([{
         'min': 0,
         'max': 1,
-        'indices': [0, 0],
+        'indices': (0, 0),
         'image': level0_tiles_green_mask[0][0],
         'color': color_green
     }, {
         'min': 0,
         'max': 1,
-        'indices': [0, 1],
+        'indices': (1, 0),
         'image': level0_tiles_green_mask[1][0],
         'color': color_green
     }, {
         'min': 0,
         'max': 1,
-        'indices': [0, 2],
+        'indices': (2, 0),
         'image': level0_tiles_green_mask[2][0],
         'color': color_green
     }, {
         'min': 0,
         'max': 1,
-        'indices': [0, 0],
+        'indices': (0, 0),
         'image': level0_tiles_red_mask[0][0],
         'color': color_red
     }, {
         'min': 0,
         'max': 1,
-        'indices': [0, 1],
+        'indices': (1, 0),
         'image': level0_tiles_red_mask[1][0],
         'color': color_red
     }, {
         'min': 0,
         'max': 1,
-        'indices': [0, 2],
+        'indices': (2, 0),
         'image': level0_tiles_red_mask[2][0],
         'color': color_red
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 0],
+        'indices': (0, 1),
         'image': level0_tiles_magenta_mask[0][1],
         'color': color_magenta
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 1],
+        'indices': (1, 1),
         'image': level0_tiles_magenta_mask[1][1],
         'color': color_magenta
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 2],
+        'indices': (2, 1),
         'image': level0_tiles_magenta_mask[2][1],
         'color': color_magenta
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 0],
+        'indices': (0, 1),
         'image': level0_tiles_blue_mask[0][1],
         'color': color_blue
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 1],
+        'indices': (1, 1),
         'image': level0_tiles_blue_mask[1][1],
         'color': color_blue
     }, {
         'min': 0,
         'max': 1,
-        'indices': [1, 2],
+        'indices': (2, 1),
         'image': level0_tiles_blue_mask[2][1],
         'color': color_blue
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 0],
+        'indices': (0, 2),
         'image': level0_tiles_orange_mask[0][2],
         'color': color_orange
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 1],
+        'indices': (1, 2),
         'image': level0_tiles_orange_mask[1][2],
         'color': color_orange
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 2],
+        'indices': (2, 2),
         'image': level0_tiles_orange_mask[2][2],
         'color': color_orange
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 0],
+        'indices': (0, 2),
         'image': level0_tiles_cyan_mask[0][2],
         'color': color_cyan
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 1],
+        'indices': (1, 2),
         'image': level0_tiles_cyan_mask[1][2],
         'color': color_cyan
     }, {
         'min': 0,
         'max': 1,
-        'indices': [2, 2],
+        'indices': (2, 2),
         'image': level0_tiles_cyan_mask[2][2],
         'color': color_cyan
     }], tile_shape_2x2, origin_zero, level0_shape_6x6)
@@ -869,25 +869,25 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
 
 def test_composite_subtiles_nonsquare(hd_tiles_green_mask, origin_zero,
                                       color_green, tile_shape_1024x1024,
-                                      hd_shape_1920x1080, hd_stitched):
+                                      hd_shape_1080x1920, hd_stitched):
     ''' Ensure nonsquare image is stitched correctly with square tiles'''
 
     expected = ski.adjust_gamma(hd_stitched, 1 / 2.2)
 
     inputs = []
 
-    for i in range(0, 2):
-        for j in range(0, 2):
+    for y in range(0, 2):
+        for x in range(0, 2):
             inputs += [{
                 'min': 0,
                 'max': 1,
-                'indices': [i, j],
-                'image': hd_tiles_green_mask[j][i],
+                'indices': (y, x),
+                'image': hd_tiles_green_mask[y][x],
                 'color': color_green
             }]
 
     result = composite_subtiles(inputs, tile_shape_1024x1024,
-                                origin_zero, hd_shape_1920x1080)
+                                origin_zero, hd_shape_1080x1920)
 
     np.testing.assert_allclose(expected, result)
 
@@ -904,19 +904,19 @@ def test_composite_subtiles_real(real_tiles_green_mask,
 
     inputs = []
 
-    for i in range(0, 4):
-        for j in range(0, 4):
+    for y in range(0, 4):
+        for x in range(0, 4):
             inputs += [{
                 'min': 0.006,
                 'max': 0.024,
-                'indices': [i, j],
-                'image': real_tiles_green_mask[j][i],
+                'indices': (y, x),
+                'image': real_tiles_green_mask[y][x],
                 'color': color_green
             }, {
                 'min': 0,
                 'max': 1,
-                'indices': [i, j],
-                'image': real_tiles_red_mask[j][i],
+                'indices': (y, x),
+                'image': real_tiles_red_mask[y][x],
                 'color': color_red
             }]
 
