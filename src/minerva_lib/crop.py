@@ -203,17 +203,34 @@ def select_tiles(tile_shape, output_origin, output_shape):
     return list(map(tuple, (start_yx + offsets).tolist()))
 
 
-def composite_subtile(out, subregion, position, tile,
-                      color, range_min, range_max):
+def extract_subtile(indices, tile_shape, output_origin, output_shape, tile):
+    '''Returns the part of the tile required for the resulting image.
+
+    Args:
+        indices: Tuple of integer y, x tile indices
+        tile_shape: Tuple of integer height, width of one tile
+        output_origin: Tuple of integer y, x origin of resulting image
+        output_shape: Tuple of integer height, width of resulting image
+        tile: 2D integer array for full tile from which to extract
+
+    Returns:
+        The part of the tile needed for the resulting image
+    '''
+    subregion = select_subregion(indices, tile_shape,
+                                 output_origin, output_shape)
+    # Take subregion from tile
+    [yt_0, xt_0], [yt_1, xt_1] = subregion
+    return tile[yt_0:yt_1, xt_0:xt_1]
+
+
+def composite_subtile(out, subtile, position, color, range_min, range_max):
     ''' Composites a subtile into an output image.
 
     Args:
         out: RBG image float array to contain composited subtile
-        subregion: Start y, x and end y, x integer coordinates for the
-            part of the tile needed for the resulting image
+        subtile: 2D integer subtile needed for the resulting image
         position: Tuple of integer y, x position of tile region
             within the resulting image
-        tile: 2D integer array for full tile to composite
         color: Color as r, g, b float array within 0, 1
         range_min: Threshhold range minimum, float within 0, 1
         range_max: Threshhold range maximum, float within 0, 1
@@ -221,14 +238,9 @@ def composite_subtile(out, subregion, position, tile,
     Returns:
         A reference to _out_
     '''
-
-    # Take subregion from tile
-    [yt_0, xt_0], [yt_1, xt_1] = subregion
-    subtile = tile[yt_0:yt_1, xt_0:xt_1]
-    shape = np.int64(subtile.shape)
-
     # Define boundary
     y_0, x_0 = position
+    shape = np.int64(subtile.shape)
     y_1, x_1 = [y_0, x_0] + shape
 
     # Composite the subtile into the output
@@ -267,12 +279,10 @@ def composite_subtiles(tiles, tile_shape, output_origin, output_shape):
 
     for tile in tiles:
         idx = tile['indices']
-        subregion = select_subregion(idx, tile_shape,
-                                     output_origin, output_shape)
-        position = select_position(idx, tile_shape,
-                                   output_origin)
-        composite_subtile(out, subregion, position,
-                          tile['image'], tile['color'],
+        position = select_position(idx, tile_shape, output_origin)
+        subtile = extract_subtile(idx, tile_shape, output_origin,
+                                  output_shape, tile['image'])
+        composite_subtile(out, subtile, position, tile['color'],
                           tile['min'], tile['max'])
 
     # Return gamma correct image within 0, 1
