@@ -4,20 +4,21 @@ import pytest
 import numpy as np
 from pathlib import Path
 from inspect import currentframe, getframeinfo
-from minerva_lib.crop import (scale_image_nearest_neighbor,
-                              get_region_first_grid,
-                              get_optimum_pyramid_level, get_region_grid_shape,
-                              transform_coordinates_to_level, select_grids,
-                              validate_region_bounds, select_subregion,
-                              select_position, composite_subtile,
-                              composite_subtiles, extract_subtile)
+from minerva_lib.render import (scale_image_nearest_neighbor,
+                                get_region_first_grid,
+                                get_optimum_pyramid_level,
+                                get_region_grid_shape,
+                                transform_coordinates_to_level, select_grids,
+                                validate_region_bounds, select_subregion,
+                                select_position, composite_subtile,
+                                composite_subtiles, extract_subtile)
 from minerva_lib import skimage_inline as ski
 
 
 @pytest.fixture(scope='module')
 def dirname():
     filename = getframeinfo(currentframe()).filename
-    return Path(filename).resolve().parent
+    return Path(filename).resolve().parent.parent
 
 
 @pytest.fixture(scope='module')
