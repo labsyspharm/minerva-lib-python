@@ -1,0 +1,2 @@
+include versioneer.py
+include src/minerva_lib/_version.py
