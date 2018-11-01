@@ -430,7 +430,7 @@ def test_scale_image_invalid_factor(level0_stitched):
     '''Test downsampling level0 to 0% fails.'''
 
     with pytest.raises(ValueError):
-        scale_image_nearest_neighbor(level0_stitched, 0)
+        scale_image_nearest_neighbor(level0_stitched, (0, 0))
 
 
 def test_get_optimum_pyramid_level_higher():

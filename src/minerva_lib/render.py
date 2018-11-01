@@ -1,4 +1,5 @@
 import itertools
+import collections.abc
 import numpy as np
 from . import skimage_inline as ski
 
@@ -87,21 +88,29 @@ def composite_channels(channels):
     return ski.adjust_gamma(out_buffer, 1 / 2.2)
 
 
-def scale_image_nearest_neighbor(source, factor):
-    '''Resizes an image by a given factor using nearest neighbor pixels.
+def scale_image_nearest_neighbor(source, factors):
+    '''Resizes an image by the given factors using nearest neighbor pixels.
 
     Args:
         source: A 2D grayscale or RGB numpy array to resize.
-        factor: The ratio of output shape over source shape.
+        factors: Tuple of height, width float ratios of output image shape to
+            input shape, or a single ratio to be used for both height and
+            width.
 
     Returns:
         A numpy array with the resized source image.
     '''
 
-    if factor <= 0:
-        raise ValueError('Scale factor must be above zero')
+    if isinstance(factors, collections.abc.Collection):
+        if len(factors) != 2:
+            raise ValueError('Factors must be a 2-tuple or a single value')
+        factors = tuple(factors)
+    else:
+        factors = (factors, factors)
+    if any(f <= 0 for f in factors):
+        raise ValueError('Factors must all be positive')
 
-    factors = [factor, factor, 1]
+    factors += (1,)
 
     # The output will have the same number of color channels as the source
     s_lim = [d - 1 for d in source.shape]
