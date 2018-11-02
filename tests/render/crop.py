@@ -48,7 +48,7 @@ def color_blue():
 
 @pytest.fixture(scope='module')
 def color_magenta():
-    return np.array([0, 1, 0], dtype=np.float32)
+    return np.array([1, 0, 1], dtype=np.float32)
 
 
 @pytest.fixture(scope='module')
@@ -58,7 +58,7 @@ def color_half_mean_blue_magenta():
 
 @pytest.fixture(scope='module')
 def color_cyan():
-    return np.array([0, 0, 1], dtype=np.float32)
+    return np.array([0, 1, 1], dtype=np.float32)
 
 
 @pytest.fixture(scope='module')
