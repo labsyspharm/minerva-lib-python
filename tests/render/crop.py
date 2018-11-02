@@ -320,6 +320,25 @@ def level0_scaled_4x4(color_black, color_red, color_blue,
 
 
 @pytest.fixture(scope='module')
+def level0_scaled_6x4(color_black, color_red, color_blue,
+                      color_magenta, color_orange):
+    '''One 6x4 image scaled from the 6x6 pixels of level 0.'''
+
+    row_0 = [
+        color_black, color_black,
+        color_magenta, color_orange
+    ]
+    row_1 = [
+        color_red, color_blue,
+        color_black, color_black
+    ]
+    return np.array([
+        row_0, row_1, row_0,
+        row_1, row_0, row_1
+    ])
+
+
+@pytest.fixture(scope='module')
 def level0_stitched_green_rgba(color_black, color_green):
     '''One 6x6 pixel green channel stitched from nine tiles.'''
 
@@ -422,6 +441,18 @@ def test_scale_image_level0_4x4(level0_stitched, level0_scaled_4x4):
     expected = level0_scaled_4x4
 
     result = scale_image_nearest_neighbor(level0_stitched, 2 / 3)
+
+    np.testing.assert_allclose(expected, result)
+
+
+def test_scale_image_level0_6x4(level0_stitched, level0_scaled_6x4):
+    '''Test downsampling level0 to 2/3 size on one axis without
+       interpolation.
+    '''
+
+    expected = level0_scaled_6x4
+
+    result = scale_image_nearest_neighbor(level0_stitched, (1, 2 / 3))
 
     np.testing.assert_allclose(expected, result)
 
