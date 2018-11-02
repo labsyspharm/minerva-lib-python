@@ -53,7 +53,7 @@ def color_magenta():
 
 @pytest.fixture(scope='module')
 def color_half_mean_blue_magenta():
-    return np.array([0, 0.25, 0.25], dtype=np.float32)
+    return np.array([0.25, 0, 0.5], dtype=np.float32)
 
 
 @pytest.fixture(scope='module')
