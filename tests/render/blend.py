@@ -2,7 +2,7 @@
 
 import pytest
 import numpy as np
-from minerva_lib.blend import composite_channel, composite_channels
+from minerva_lib.render import composite_channel, composite_channels
 
 
 @pytest.fixture
