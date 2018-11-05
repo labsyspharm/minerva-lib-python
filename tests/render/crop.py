@@ -12,7 +12,6 @@ from minerva_lib.render import (scale_image_nearest_neighbor,
                                 validate_region_bounds, select_subregion,
                                 select_position, composite_subtile,
                                 composite_subtiles, extract_subtile)
-from minerva_lib import skimage_inline as ski
 
 
 @pytest.fixture(scope='module')
@@ -37,11 +36,6 @@ def color_green():
 
 
 @pytest.fixture(scope='module')
-def color_half_mean_red_green():
-    return np.array([0.25, 0.25, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
 def color_blue():
     return np.array([0, 0, 1], dtype=np.float32)
 
@@ -52,11 +46,6 @@ def color_magenta():
 
 
 @pytest.fixture(scope='module')
-def color_half_mean_blue_magenta():
-    return np.array([0.25, 0, 0.5], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
 def color_cyan():
     return np.array([0, 1, 1], dtype=np.float32)
 
@@ -64,11 +53,6 @@ def color_cyan():
 @pytest.fixture(scope='module')
 def color_orange():
     return np.array([1, .5, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_half_mean_cyan_orange():
-    return np.array([0.25, 0.38, 0.25], dtype=np.float32)
 
 
 @pytest.fixture(scope='module')
@@ -99,12 +83,6 @@ def real_tiles_red_mask(dirname):
             np.load(Path(dirname, 'data/red/3/3/tile.npy').resolve())
         ],
     ]
-
-
-@pytest.fixture(scope='module')
-def hd_stitched(color_green):
-    hd_h, hd_w = (1080, 1920)
-    return np.ones((hd_h, hd_w, 3)) * color_green
 
 
 @pytest.fixture(scope='module')
@@ -279,66 +257,6 @@ def level0_tiles_cyan_mask():
 
 
 @pytest.fixture(scope='module')
-def level0_tiles(color_black, color_red, color_green, color_blue,
-                 color_magenta, color_cyan, color_orange):
-    '''Nine 2x2 pixel tiles in a square checkerboard.'''
-
-    return [
-        [
-            np.array([
-                [color_black, color_green],
-                [color_red, color_black]
-            ]),
-            np.array([
-                [color_black, color_magenta],
-                [color_blue, color_black]
-            ]),
-            np.array([
-                [color_black, color_orange],
-                [color_cyan, color_black]
-            ])
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
-def level0_scaled_4x4(color_black, color_red, color_blue,
-                      color_magenta, color_orange):
-    '''One 4x4 image scaled from the 6x6 pixels of level 0.'''
-    row_0 = [
-        color_black, color_black,
-        color_magenta, color_orange
-    ]
-    row_1 = [
-        color_red, color_blue,
-        color_black, color_black
-    ]
-    return np.array([
-        row_0, row_0,
-        row_1, row_1
-    ])
-
-
-@pytest.fixture(scope='module')
-def level0_scaled_6x4(color_black, color_red, color_blue,
-                      color_magenta, color_orange):
-    '''One 6x4 image scaled from the 6x6 pixels of level 0.'''
-
-    row_0 = [
-        color_black, color_black,
-        color_magenta, color_orange
-    ]
-    row_1 = [
-        color_red, color_blue,
-        color_black, color_black
-    ]
-    return np.array([
-        row_0, row_1, row_0,
-        row_1, row_0, row_1
-    ])
-
-
-@pytest.fixture(scope='module')
 def level0_stitched_green_rgba(color_black, color_green):
     '''One 6x6 pixel green channel stitched from nine tiles.'''
 
@@ -358,99 +276,51 @@ def level0_stitched(color_black, color_red, color_green, color_blue,
                     color_magenta, color_cyan, color_orange):
     '''One 6x6 pixel image stitched from nine tiles.'''
 
-    row_0 = [
-        color_black, color_green,
-        color_black, color_magenta,
-        color_black, color_orange
-    ]
-    row_1 = [
-        color_red, color_black,
-        color_blue, color_black,
-        color_cyan, color_black,
-    ]
-    return np.array([row_0, row_1] * 3)
+    return np.array([
+        [[0, 0, 0], [0, 1, 0], [0, 0, 0], [1, 0, 1], [0, 0, 0], [1, 0.5, 0]],
+        [[1, 0, 0], [0, 0, 0], [0, 0, 1], [0, 0, 0], [0, 1, 1], [0, 0, 0]],
+    ] * 3)
 
 
 @pytest.fixture(scope='module')
-def level1_tiles(color_half_mean_red_green,
-                 color_half_mean_blue_magenta,
-                 color_half_mean_cyan_orange):
-    '''One full + two half + one fourth 2x2 pixel tiles as the half-resolution
-       representation of level0 using linear interpolation.
-    '''
+def level1_tile_0_0():
+    '''A half-resolution 4x4 tile made using linear interpolation.'''
 
-    return [
-        [
-            np.array([
-                [
-                    color_half_mean_red_green,
-                    color_half_mean_blue_magenta
-                ]
-            ] * 2),
-            np.array([
-                [
-                    color_half_mean_cyan_orange
-                ]
-            ] * 2),
-        ],
-        [
-            np.array([
-                [
-                    color_half_mean_red_green,
-                    color_half_mean_blue_magenta
-                ]
-            ]),
-            np.array([
-                [
-                    color_half_mean_cyan_orange
-                ]
-            ]),
-        ]
-    ]
+    # Columns blending Red + Green, Blue + Magenta
+    return np.array([
+        [[0.25, 0.25, 0], [0.25, 0, 0.5]],
+        [[0.25, 0.25, 0], [0.25, 0, 0.5]]
+    ])
 
 
-@pytest.fixture(scope='module')
-def level1_tile_list():
-
-    return [
-        (0, 0),
-        (0, 1),
-        (1, 0),
-        (1, 1),
-    ]
-
-
-@pytest.fixture(scope='module')
-def level1_stitched(color_half_mean_red_green,
-                    color_half_mean_blue_magenta,
-                    color_half_mean_cyan_orange):
-    '''One 3x3 pixel image of a half-scaled level0
-        using linear interpolation
-    '''
-    row = [
-        color_half_mean_red_green,
-        color_half_mean_blue_magenta,
-        color_half_mean_cyan_orange
-    ]
-    return np.array([row, row, row])
-
-
-def test_scale_image_level0_4x4(level0_stitched, level0_scaled_4x4):
+def test_scale_image_level0_4x4(level0_stitched):
     '''Test downsampling level0 to 2/3 size without interpolation.'''
 
-    expected = level0_scaled_4x4
+    expected = np.array([
+        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
+        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]]
+    ])
 
     result = scale_image_nearest_neighbor(level0_stitched, 2 / 3)
 
     np.testing.assert_allclose(expected, result)
 
 
-def test_scale_image_level0_6x4(level0_stitched, level0_scaled_6x4):
+def test_scale_image_level0_6x4(level0_stitched):
     '''Test downsampling level0 to 2/3 size on one axis without
        interpolation.
     '''
 
-    expected = level0_scaled_6x4
+    expected = np.array([
+        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
+        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]]
+    ])
 
     result = scale_image_nearest_neighbor(level0_stitched, (1, 2 / 3))
 
@@ -596,10 +466,15 @@ def test_select_grids_level0():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_grids_level1(level1_tile_list):
+def test_select_grids_level1():
     '''Ensure selection of all available tiles for full region.'''
 
-    expected = level1_tile_list
+    expected = [
+        (0, 0),
+        (0, 1),
+        (1, 0),
+        (1, 1),
+    ]
 
     result = select_grids((2, 2), (0, 0), (3, 3))
 
@@ -620,14 +495,16 @@ def test_select_subregion_1_1():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_extract_subtile_1_1(level1_tiles):
+def test_extract_subtile_1_1(level1_tile_0_0):
     '''Ensure partial tile is extracted when full tile unnecessary.'''
 
-    tile = level1_tiles[0][0]
-    expected = tile[1:, :]
+    expected = np.array([
+        [[0.25, 0.25, 0], [0.25, 0, 0.5]]
+    ])
 
     result = extract_subtile((0, 0), (2, 2),
-                             (1, 0), (2, 2), tile)
+                             (1, 0), (2, 2),
+                             level1_tile_0_0)
 
     np.testing.assert_array_equal(expected, result)
 
@@ -650,8 +527,8 @@ def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
     second_tile = level0_tiles_green_mask[0][0]
 
     expected = np.array([
-        [[0, 0, 0], color_green],
-        [color_red, [0, 0, 0]],
+        [[0, 0, 0], [0, 1, 0]],
+        [[1, 0, 0], [0, 0, 0]],
     ])
 
     result = np.zeros((2, 2) + (3,))
@@ -694,7 +571,16 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
                                    level0_stitched):
     '''Ensure expected rendering of multi-tile multi-channel image.'''
 
-    expected = ski.adjust_gamma(level0_stitched, 1 / 2.2)
+    # Gamma adjusted level0_stitched
+    expected = np.array([
+        [
+            [0,  0,  0], [0,  1,  0], [0,  0,  0],
+            [1,  0,  1], [0,  0,  0], [1,  0.72974005, 0]
+        ], [
+            [1,  0,  0], [0,  0,  0], [0,  0,  1],
+            [0,  0,  0], [0,  1,  1], [0,  0,  0]
+        ]
+    ] * 3)
 
     result = composite_subtiles([{
         'min': 0,
@@ -809,11 +695,11 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
     np.testing.assert_allclose(expected, result)
 
 
-def test_composite_subtiles_nonsquare(hd_tiles_green_mask, color_green,
-                                      hd_stitched):
+def test_composite_subtiles_nonsquare(hd_tiles_green_mask, color_green):
     '''Ensure non-square image is stitched correctly with square tiles.'''
 
-    expected = ski.adjust_gamma(hd_stitched, 1 / 2.2)
+    # Gamma correction not needed for fully saturated green channel
+    expected = np.ones((1080, 1920, 3)) * [0, 1, 0]
 
     inputs = []
 

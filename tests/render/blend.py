@@ -36,11 +36,6 @@ def color_yellow():
 
 
 @pytest.fixture
-def color_green():
-    return np.array([0, 1, 0], dtype=np.float32)
-
-
-@pytest.fixture
 def color_blue():
     return np.array([0, 0, 1], dtype=np.float32)
 
@@ -55,7 +50,7 @@ def color_khaki():
     return np.array([240, 230, 140], dtype=np.float32) / 255
 
 
-@pytest.fixture(params=['color_white', 'color_yellow', 'color_green',
+@pytest.fixture(params=['color_white', 'color_yellow',
                         'color_blue', 'color_red', 'color_khaki'])
 def colors(request):
     return request.getfixturevalue(request.param)
@@ -92,9 +87,9 @@ def test_channel_range_high(u16_3value_channel, color_white, range_high,
     '''Extract high values from image in channel dictionary'''
 
     expected = np.array([
-        [[0, 0, 0]],
-        [[0, 0, 0]],
-        [color_white]
+        [[0] * 3],
+        [[0] * 3],
+        [[1] * 3]
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
@@ -108,9 +103,9 @@ def test_channel_range_low(u16_3value_channel, color_white, range_low,
     '''Extract low values from image in channel dictionary'''
 
     expected = np.array([
-        [[0, 0, 0]],
-        [color_white],
-        [color_white]
+        [[0] * 3],
+        [[1] * 3],
+        [[1] * 3]
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
@@ -124,7 +119,7 @@ def test_channel_color_red(u16_3value_channel, color_red, range_all,
     '''Blend an image with one channel, testing red color'''
 
     expected = np.array([
-        [[0, 0, 0]],
+        [[0] * 3],
         [[12345 / 65535, 0, 0]],
         [[1, 0, 0]]
     ], dtype=np.float32)
@@ -140,9 +135,9 @@ def test_channel_color_white(u16_3value_channel, color_white, range_all,
     '''Blend an image with one channel, testing white color'''
 
     expected = np.array([
-        [[0, 0, 0]],
-        [color_white * 12345 / 65535],
-        [color_white]
+        [[0] * 3],
+        [[12345 / 65535] * 3],
+        [[1] * 3]
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
@@ -169,9 +164,17 @@ def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
     '''
 
     expected = np.array([
-        [[0, 0, 0]],
-        [color_khaki * 12345 / 65535],
-        [color_khaki]
+        [[0] * 3],
+        [[
+            240 / 255 * (12345 / 65535),
+            230 / 255 * (12345 / 65535),
+            140 / 255 * (12345 / 65535)
+        ]],
+        [[
+            240 / 255,
+            230 / 255,
+            140 / 255
+        ]]
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
@@ -187,9 +190,17 @@ def test_channel_khaki_low(u16_3value_channel, color_khaki, range_low,
     '''
 
     expected = np.array([
-        [[0, 0, 0]],
-        [color_khaki],
-        [color_khaki],
+        [[0] * 3],
+        [[
+            240 / 255,
+            230 / 255,
+            140 / 255
+        ]],
+        [[
+            240 / 255,
+            230 / 255,
+            140 / 255
+        ]],
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
@@ -204,8 +215,8 @@ def test_channels_two_channel(u16_checkered_channel,
     '''Test blending an image with two channels'''
 
     expected = np.array([
-        [color_yellow, color_blue],
-        [color_blue, color_yellow],
+        [[1, 1, 0], [0, 0, 1]],
+        [[0, 0, 1], [1, 1, 0]],
     ], dtype=np.float32)
 
     result = composite_channels([
@@ -231,13 +242,13 @@ def test_channels_size_mismatch(color_white, range_all):
 
     input_channels = [
         {
-            'image': np.array([[0, 0, 0]], dtype=np.uint16),
+            'image': np.array([[0] * 3], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
         },
         {
-            'image': np.array([[0, 65535]], dtype=np.uint16),
+            'image': np.array([[0] * 2], dtype=np.uint16),
             'color': color_white,
             'min': range_all[0],
             'max': range_all[1]
