@@ -272,8 +272,17 @@ def level0_stitched_green_rgba(color_black, color_green):
 
 
 @pytest.fixture(scope='module')
-def level0_stitched(color_black, color_red, color_green, color_blue,
-                    color_magenta, color_cyan, color_orange):
+def checker_4x4():
+    '''One 6x6 pixel image stitched from nine tiles.'''
+
+    return np.array([
+        [[0, 0, 0], [1, 1, 1]] * 2,
+        [[1, 1, 1], [0, 0, 0]] * 2,
+    ] * 2)
+
+
+@pytest.fixture(scope='module')
+def level0_stitched():
     '''One 6x6 pixel image stitched from nine tiles.'''
 
     return np.array([
@@ -293,17 +302,16 @@ def level1_tile_0_0():
     ])
 
 
-def test_scale_image_aliasing(level0_stitched):
+def test_scale_image_aliasing(checker_4x4):
     '''Test downsampling level0 to 2/3 size without interpolation.'''
 
     expected = np.array([
-        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
-        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
-        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
-        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]]
+        [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
+        [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
+        [[1, 1, 1], [1, 1, 1], [0, 0, 0]]
     ])
 
-    result = scale_image_nearest_neighbor(level0_stitched, 2 / 3)
+    result = scale_image_nearest_neighbor(checker_4x4, 2 / 3)
 
     np.testing.assert_allclose(expected, result)
 
