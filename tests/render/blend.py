@@ -46,12 +46,12 @@ def color_red():
 
 
 @pytest.fixture
-def color_khaki():
-    return np.array([240, 230, 140], dtype=np.float32) / 255
+def color_orange():
+    return np.array([1, 0.5, 0], dtype=np.float32)
 
 
 @pytest.fixture(params=['color_white', 'color_yellow',
-                        'color_blue', 'color_red', 'color_khaki'])
+                        'color_blue', 'color_red', 'color_orange'])
 def colors(request):
     return request.getfixturevalue(request.param)
 
@@ -157,54 +157,38 @@ def test_channel_target_is_out(u16_3value_channel, color_white, range_all,
     assert f32_3value_rgb_buffer is result
 
 
-def test_channel_color_khaki(u16_3value_channel, color_khaki, range_all,
-                             f32_3value_rgb_buffer):
-    '''Make an image with one channel, testing khaki color
-    Ensure any color mappings normalize between 0 and 1
+def test_channel_color_orange(u16_3value_channel, color_orange, range_all,
+                              f32_3value_rgb_buffer):
+    '''Make an image with one channel, testing orange color
+    Ensure correct multiplication of fractional channel values
     '''
 
     expected = np.array([
         [[0] * 3],
-        [[
-            240 / 255 * (12345 / 65535),
-            230 / 255 * (12345 / 65535),
-            140 / 255 * (12345 / 65535)
-        ]],
-        [[
-            240 / 255,
-            230 / 255,
-            140 / 255
-        ]]
+        [[12345 / 65535, 0.5 * 12345 / 65535, 0]],
+        [[1, 0.5, 0]]
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
-                               color_khaki, *range_all)
+                               color_orange, *range_all)
 
     np.testing.assert_allclose(expected, result)
 
 
-def test_channel_khaki_low(u16_3value_channel, color_khaki, range_low,
-                           f32_3value_rgb_buffer):
-    '''Blend an image with one channel, testing khaki at low range
-    Ensure overly bright values are clipped to 1
+def test_channel_orange_low(u16_3value_channel, color_orange, range_low,
+                            f32_3value_rgb_buffer):
+    '''Blend an image with one channel, testing orange at low range
+    Ensure values above range clipped before separating color channels
     '''
 
     expected = np.array([
         [[0] * 3],
-        [[
-            240 / 255,
-            230 / 255,
-            140 / 255
-        ]],
-        [[
-            240 / 255,
-            230 / 255,
-            140 / 255
-        ]],
+        [[1, 0.5, 0]],
+        [[1, 0.5, 0]],
     ], dtype=np.float32)
 
     result = composite_channel(f32_3value_rgb_buffer, u16_3value_channel,
-                               color_khaki, *range_low)
+                               color_orange, *range_low)
 
     np.testing.assert_allclose(expected, result)
 
