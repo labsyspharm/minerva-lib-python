@@ -293,7 +293,7 @@ def level1_tile_0_0():
     ])
 
 
-def test_scale_image_level0_4x4(level0_stitched):
+def test_scale_image_aliasing(level0_stitched):
     '''Test downsampling level0 to 2/3 size without interpolation.'''
 
     expected = np.array([
@@ -308,7 +308,7 @@ def test_scale_image_level0_4x4(level0_stitched):
     np.testing.assert_allclose(expected, result)
 
 
-def test_scale_image_level0_6x4(level0_stitched):
+def test_scale_image_asymetry(level0_stitched):
     '''Test downsampling level0 to 2/3 size on one axis without
        interpolation.
     '''
@@ -356,7 +356,7 @@ def test_get_optimum_pyramid_level_lower():
     assert expected == result
 
 
-def test_transform_coordinates_to_level0():
+def test_transform_coordinates_full_scale():
     '''Test keeping level 0 coordinates unchanged'''
 
     expected = np.array((6, 6), dtype=np.int64)
@@ -366,7 +366,7 @@ def test_transform_coordinates_to_level0():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_transform_coordinates_to_level1():
+def test_transform_coordinates_half_scale():
     '''Test scaling level 0 coordinates to level 1 coordinates'''
 
     expected = np.array((3, 3), dtype=np.int64)
@@ -376,7 +376,17 @@ def test_transform_coordinates_to_level1():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_tile_start_1_1():
+def test_select_position_inner_tile():
+    '''Test ability to position tile in middle of image.'''
+
+    expected = (2, 2)
+
+    result = select_position((1, 1), (2, 2), (0, 0))
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_get_first_grid_inner_tile():
     '''Ensure correct lower bound for origin after first tile'''
 
     expected = (1, 1)
@@ -386,7 +396,7 @@ def test_tile_start_1_1():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_tile_count_3_3():
+def test_get_grid_shape_clipped_tiles():
     '''Ensure correct upper bound within level0 shape.'''
 
     expected = (4, 4)
@@ -447,7 +457,7 @@ def test_validate_region_negative():
     )
 
 
-def test_select_grids_level0():
+def test_select_grids_sub_region():
     '''Ensure selection of two tiles for partial region.'''
 
     expected = [
@@ -466,7 +476,7 @@ def test_select_grids_level0():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_grids_level1():
+def test_select_grids_full_region():
     '''Ensure selection of all available tiles for full region.'''
 
     expected = [
@@ -481,7 +491,7 @@ def test_select_grids_level1():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_subregion_1_1():
+def test_select_subregion_ceiling_tile():
     '''Ensure partial tile is selected when full tile unavailable.'''
 
     expected = [
@@ -495,7 +505,7 @@ def test_select_subregion_1_1():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_extract_subtile_1_1(level1_tile_0_0):
+def test_extract_subtile_clipped_tile(level1_tile_0_0):
     '''Ensure partial tile is extracted when full tile unnecessary.'''
 
     expected = np.array([
@@ -509,18 +519,8 @@ def test_extract_subtile_1_1(level1_tile_0_0):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_position_1_1():
-    '''Test ability to position tile in middle of image.'''
-
-    expected = (2, 2)
-
-    result = select_position((1, 1), (2, 2), (0, 0))
-
-    np.testing.assert_array_equal(expected, result)
-
-
-def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
-                                     level0_tiles_green_mask, color_green):
+def test_composite_subtile_blending(level0_tiles_red_mask, color_red,
+                                    level0_tiles_green_mask, color_green):
     '''Ensure compositing with existing content of stitched region'''
 
     first_tile = level0_tiles_red_mask[0][0]
@@ -541,8 +541,8 @@ def test_composite_subtile_composite(level0_tiles_red_mask, color_red,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_level0(level0_stitched_green_rgba,
-                                  level0_tiles_green_mask, color_green):
+def test_composite_subtile_cropping(level0_stitched_green_rgba,
+                                    level0_tiles_green_mask, color_green):
     '''Test correct cropping of single channel without rendering.'''
 
     expected = level0_stitched_green_rgba
@@ -560,15 +560,15 @@ def test_composite_subtile_level0(level0_stitched_green_rgba,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtiles_level0(level0_tiles_green_mask,
-                                   level0_tiles_red_mask,
-                                   level0_tiles_magenta_mask,
-                                   level0_tiles_blue_mask,
-                                   level0_tiles_orange_mask,
-                                   level0_tiles_cyan_mask,
-                                   color_red, color_green, color_blue,
-                                   color_magenta, color_cyan, color_orange,
-                                   level0_stitched):
+def test_composite_subtile_square_grid(level0_tiles_green_mask,
+                                       level0_tiles_red_mask,
+                                       level0_tiles_magenta_mask,
+                                       level0_tiles_blue_mask,
+                                       level0_tiles_orange_mask,
+                                       level0_tiles_cyan_mask,
+                                       color_red, color_green, color_blue,
+                                       color_magenta, color_cyan, color_orange,
+                                       level0_stitched):
     '''Ensure expected rendering of multi-tile multi-channel image.'''
 
     # Gamma adjusted level0_stitched
@@ -695,7 +695,7 @@ def test_composite_subtiles_level0(level0_tiles_green_mask,
     np.testing.assert_allclose(expected, result)
 
 
-def test_composite_subtiles_nonsquare(hd_tiles_green_mask, color_green):
+def test_composite_subtile_nonsquare(hd_tiles_green_mask, color_green):
     '''Ensure non-square image is stitched correctly with square tiles.'''
 
     # Gamma correction not needed for fully saturated green channel
