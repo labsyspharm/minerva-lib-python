@@ -193,70 +193,6 @@ def level0_tiles_red_mask():
 
 
 @pytest.fixture(scope='module')
-def level0_tiles_magenta_mask():
-    '''Nine 2x2 pixel tiles, magenta channel.'''
-
-    return [
-        [
-            np.zeros([2, 2], dtype=np.uint8),
-            np.array([
-                [0, 255],
-                [0, 0]
-            ], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
-def level0_tiles_blue_mask():
-    '''Nine 2x2 pixel tiles, blue channel.'''
-
-    return [
-        [
-            np.zeros([2, 2], dtype=np.uint8),
-            np.array([
-                [0, 0],
-                [255, 0]
-            ], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
-def level0_tiles_orange_mask():
-    '''Nine 2x2 pixel tiles, orange channel.'''
-
-    return [
-        [
-            np.zeros([2, 2], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8),
-            np.array([
-                [0, 255],
-                [0, 0]
-            ], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
-def level0_tiles_cyan_mask():
-    '''Nine 2x2 pixel tiles, cyan channel.'''
-
-    return [
-        [
-            np.zeros([2, 2], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8),
-            np.array([
-                [0, 0],
-                [255, 0]
-            ], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
 def level0_stitched_green_rgba(color_black, color_green):
     '''One 6x6 pixel green channel stitched from nine tiles.'''
 
@@ -279,16 +215,6 @@ def checker_4x4():
         [[0, 0, 0], [1, 1, 1]] * 2,
         [[1, 1, 1], [0, 0, 0]] * 2,
     ] * 2)
-
-
-@pytest.fixture(scope='module')
-def level0_stitched():
-    '''One 6x6 pixel image stitched from nine tiles.'''
-
-    return np.array([
-        [[0, 0, 0], [0, 1, 0], [0, 0, 0], [1, 0, 1], [0, 0, 0], [1, 0.5, 0]],
-        [[1, 0, 0], [0, 0, 0], [0, 0, 1], [0, 0, 0], [0, 1, 1], [0, 0, 0]],
-    ] * 3)
 
 
 def test_scale_image_aliasing(checker_4x4):
@@ -320,11 +246,14 @@ def test_scale_image_asymetry(checker_4x4):
     np.testing.assert_allclose(expected, result)
 
 
-def test_scale_image_invalid_factor(level0_stitched):
+def test_scale_image_invalid_factor():
     '''Test downsampling level0 to 0% fails.'''
 
     with pytest.raises(ValueError):
-        scale_image_nearest_neighbor(level0_stitched, (0, 0))
+        scale_image_nearest_neighbor(np.array([
+                                        [[0, 0, 0], [0, 0, 0]],
+                                        [[0, 0, 0], [0, 0, 0]]
+                                    ]), (0, 0))
 
 
 def test_get_optimum_pyramid_level_higher():
@@ -556,137 +485,85 @@ def test_composite_subtile_cropping(level0_stitched_green_rgba,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_square_grid(level0_tiles_green_mask,
-                                       level0_tiles_red_mask,
-                                       level0_tiles_magenta_mask,
-                                       level0_tiles_blue_mask,
-                                       level0_tiles_orange_mask,
-                                       level0_tiles_cyan_mask,
-                                       color_red, color_green, color_blue,
-                                       color_magenta, color_cyan, color_orange,
-                                       level0_stitched):
+def test_composite_subtile_square(color_cyan, color_orange):
     '''Ensure expected rendering of multi-tile multi-channel image.'''
 
-    # Gamma adjusted level0_stitched
+    # Gamma adjusted cyan and orange
     expected = np.array([
-        [
-            [0,  0,  0], [0,  1,  0], [0,  0,  0],
-            [1,  0,  1], [0,  0,  0], [1,  0.72974005, 0]
-        ], [
-            [1,  0,  0], [0,  0,  0], [0,  0,  1],
-            [0,  0,  0], [0,  1,  1], [0,  0,  0]
-        ]
-    ] * 3)
+        [[1,  0.72974005, 0], [0,  1, 1], [0, 1, 1]],
+        [[0, 1, 1], [0,  1,  1], [1, 0.72974005, 0]],
+        [[0, 0, 0], [1,  0.72974005, 0], [0,  0, 0]]
+    ])
 
     result = composite_subtiles([{
         'min': 0,
         'max': 1,
         'grid': (0, 0),
-        'image': level0_tiles_green_mask[0][0],
-        'color': color_green
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (1, 0),
-        'image': level0_tiles_green_mask[1][0],
-        'color': color_green
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (2, 0),
-        'image': level0_tiles_green_mask[2][0],
-        'color': color_green
+        'image': np.array([
+            [255, 0],
+            [0, 0],
+        ], dtype=np.uint8),
+        'color': color_orange
     }, {
         'min': 0,
         'max': 1,
         'grid': (0, 0),
-        'image': level0_tiles_red_mask[0][0],
-        'color': color_red
+        'image': np.array([
+            [0, 255],
+            [255, 255],
+        ], dtype=np.uint8),
+        'color': color_cyan
+    }, {
+        'min': 0,
+        'max': 1,
+        'grid': (0, 1),
+        'image': np.array([
+            [0],
+            [255],
+        ], dtype=np.uint8),
+        'color': color_orange
+    }, {
+        'min': 0,
+        'max': 1,
+        'grid': (0, 1),
+        'image': np.array([
+            [255],
+            [0],
+        ], dtype=np.uint8),
+        'color': color_cyan
     }, {
         'min': 0,
         'max': 1,
         'grid': (1, 0),
-        'image': level0_tiles_red_mask[1][0],
-        'color': color_red
+        'image': np.array([
+            [0, 255],
+        ], dtype=np.uint8),
+        'color': color_orange
     }, {
         'min': 0,
         'max': 1,
-        'grid': (2, 0),
-        'image': level0_tiles_red_mask[2][0],
-        'color': color_red
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 1),
-        'image': level0_tiles_magenta_mask[0][1],
-        'color': color_magenta
+        'grid': (1, 0),
+        'image': np.array([
+            [0, 0],
+        ], dtype=np.uint8),
+        'color': color_cyan
     }, {
         'min': 0,
         'max': 1,
         'grid': (1, 1),
-        'image': level0_tiles_magenta_mask[1][1],
-        'color': color_magenta
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (2, 1),
-        'image': level0_tiles_magenta_mask[2][1],
-        'color': color_magenta
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 1),
-        'image': level0_tiles_blue_mask[0][1],
-        'color': color_blue
+        'image': np.array([
+            [0],
+        ], dtype=np.uint8),
+        'color': color_orange
     }, {
         'min': 0,
         'max': 1,
         'grid': (1, 1),
-        'image': level0_tiles_blue_mask[1][1],
-        'color': color_blue
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (2, 1),
-        'image': level0_tiles_blue_mask[2][1],
-        'color': color_blue
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 2),
-        'image': level0_tiles_orange_mask[0][2],
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (1, 2),
-        'image': level0_tiles_orange_mask[1][2],
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (2, 2),
-        'image': level0_tiles_orange_mask[2][2],
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 2),
-        'image': level0_tiles_cyan_mask[0][2],
+        'image': np.array([
+            [0],
+        ], dtype=np.uint8),
         'color': color_cyan
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (1, 2),
-        'image': level0_tiles_cyan_mask[1][2],
-        'color': color_cyan
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (2, 2),
-        'image': level0_tiles_cyan_mask[2][2],
-        'color': color_cyan
-    }], (2, 2), (0, 0), (6, 6))
+    }], (2, 2), (0, 0), (3, 3))
 
     np.testing.assert_allclose(expected, result)
 
