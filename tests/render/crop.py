@@ -303,7 +303,7 @@ def level1_tile_0_0():
 
 
 def test_scale_image_aliasing(checker_4x4):
-    '''Test downsampling level0 to 2/3 size without interpolation.'''
+    '''Test downsampling to 3/4 size without interpolation.'''
 
     expected = np.array([
         [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
@@ -311,26 +311,22 @@ def test_scale_image_aliasing(checker_4x4):
         [[1, 1, 1], [1, 1, 1], [0, 0, 0]]
     ])
 
-    result = scale_image_nearest_neighbor(checker_4x4, 2 / 3)
+    result = scale_image_nearest_neighbor(checker_4x4, 3 / 4)
 
     np.testing.assert_allclose(expected, result)
 
 
-def test_scale_image_asymetry(level0_stitched):
-    '''Test downsampling level0 to 2/3 size on one axis without
-       interpolation.
-    '''
+def test_scale_image_asymetry(checker_4x4):
+    '''Test downsampling only in y to 3/4 size without interpolation.'''
 
     expected = np.array([
-        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
-        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
-        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
-        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]],
-        [[0, 0, 0], [0, 0, 0], [1, 0, 1], [1, .5, 0]],
-        [[1, 0, 0], [0, 0, 1], [0, 0, 0], [0, 0, 0]]
+        [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
+        [[1, 1, 1], [1, 1, 1], [0, 0, 0]],
+        [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
+        [[1, 1, 1], [1, 1, 1], [0, 0, 0]]
     ])
 
-    result = scale_image_nearest_neighbor(level0_stitched, (1, 2 / 3))
+    result = scale_image_nearest_neighbor(checker_4x4, (1, 3 / 4))
 
     np.testing.assert_allclose(expected, result)
 
