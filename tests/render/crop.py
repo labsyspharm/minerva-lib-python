@@ -291,17 +291,6 @@ def level0_stitched():
     ] * 3)
 
 
-@pytest.fixture(scope='module')
-def level1_tile_0_0():
-    '''A half-resolution 4x4 tile made using linear interpolation.'''
-
-    # Columns blending Red + Green, Blue + Magenta
-    return np.array([
-        [[0.25, 0.25, 0], [0.25, 0, 0.5]],
-        [[0.25, 0.25, 0], [0.25, 0, 0.5]]
-    ])
-
-
 def test_scale_image_aliasing(checker_4x4):
     '''Test downsampling to 3/4 size without interpolation.'''
 
@@ -509,16 +498,19 @@ def test_select_subregion_ceiling_tile():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_extract_subtile_clipped_tile(level1_tile_0_0):
+def test_extract_subtile_clipped_tile():
     '''Ensure partial tile is extracted when full tile unnecessary.'''
 
     expected = np.array([
-        [[0.25, 0.25, 0], [0.25, 0, 0.5]]
+        [[1, 1, 1], [0, 0, 0]]
     ])
 
     result = extract_subtile((0, 0), (2, 2),
                              (1, 0), (2, 2),
-                             level1_tile_0_0)
+                             np.array([
+                                [[0, 0, 0], [1, 1, 1]],
+                                [[1, 1, 1], [0, 0, 0]]
+                             ]))
 
     np.testing.assert_array_equal(expected, result)
 
