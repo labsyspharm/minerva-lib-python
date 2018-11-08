@@ -21,11 +21,6 @@ def dirname():
 
 
 @pytest.fixture(scope='module')
-def color_black():
-    return np.array([0, 0, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
 def color_white():
     return np.array([1, 1, 1], dtype=np.float32)
 
@@ -38,21 +33,6 @@ def color_red():
 @pytest.fixture(scope='module')
 def color_green():
     return np.array([0, 1, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_blue():
-    return np.array([0, 0, 1], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_magenta():
-    return np.array([1, 0, 1], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_cyan():
-    return np.array([0, 1, 1], dtype=np.float32)
 
 
 @pytest.fixture(scope='module')
@@ -87,20 +67,6 @@ def real_tiles_red_mask(dirname):
             np.load(Path(dirname, 'data/red/2/3/tile.npy').resolve()),
             np.load(Path(dirname, 'data/red/3/3/tile.npy').resolve())
         ],
-    ]
-
-
-@pytest.fixture(scope='module')
-def hd_tiles_green_mask():
-    return [
-        [
-            np.ones((1024, 1024)),
-            np.ones((1024, 896))
-        ],
-        [
-            np.ones((56, 1024)),
-            np.ones((56, 896))
-        ]
     ]
 
 
