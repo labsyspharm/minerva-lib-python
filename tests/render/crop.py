@@ -26,6 +26,11 @@ def color_black():
 
 
 @pytest.fixture(scope='module')
+def color_white():
+    return np.array([1, 1, 1], dtype=np.float32)
+
+
+@pytest.fixture(scope='module')
 def color_red():
     return np.array([1, 0, 0], dtype=np.float32)
 
@@ -485,109 +490,37 @@ def test_composite_subtile_cropping(level0_stitched_green_rgba,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_square(color_cyan, color_orange):
-    '''Ensure expected rendering of multi-tile multi-channel image.'''
+def test_composite_subtile_nonsquare(color_white):
+    '''Stitch a non-square image from 1 full and 3 edge tiles.'''
 
-    # Gamma adjusted cyan and orange
-    expected = np.array([
-        [[1,  0.72974005, 0], [0,  1, 1], [0, 1, 1]],
-        [[0, 1, 1], [0,  1,  1], [1, 0.72974005, 0]],
-        [[0, 0, 0], [1,  0.72974005, 0], [0,  0, 0]]
-    ])
+    # Gamma correction not needed for fully saturated white
+    expected = np.ones((1080, 1920, 3))
 
     result = composite_subtiles([{
         'min': 0,
         'max': 1,
         'grid': (0, 0),
-        'image': np.array([
-            [255, 0],
-            [0, 0],
-        ], dtype=np.uint8),
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 0),
-        'image': np.array([
-            [0, 255],
-            [255, 255],
-        ], dtype=np.uint8),
-        'color': color_cyan
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 1),
-        'image': np.array([
-            [0],
-            [255],
-        ], dtype=np.uint8),
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (0, 1),
-        'image': np.array([
-            [255],
-            [0],
-        ], dtype=np.uint8),
-        'color': color_cyan
+        'image': 255 * np.ones((1024, 1024), dtype=np.uint8),
+        'color': color_white
     }, {
         'min': 0,
         'max': 1,
         'grid': (1, 0),
-        'image': np.array([
-            [0, 255],
-        ], dtype=np.uint8),
-        'color': color_orange
+        'image': 255 * np.ones((56, 1024), dtype=np.uint8),
+        'color': color_white
     }, {
         'min': 0,
         'max': 1,
-        'grid': (1, 0),
-        'image': np.array([
-            [0, 0],
-        ], dtype=np.uint8),
-        'color': color_cyan
+        'grid': (0, 1),
+        'image': 255 * np.ones((1024, 896), dtype=np.uint8),
+        'color': color_white
     }, {
         'min': 0,
         'max': 1,
         'grid': (1, 1),
-        'image': np.array([
-            [0],
-        ], dtype=np.uint8),
-        'color': color_orange
-    }, {
-        'min': 0,
-        'max': 1,
-        'grid': (1, 1),
-        'image': np.array([
-            [0],
-        ], dtype=np.uint8),
-        'color': color_cyan
-    }], (2, 2), (0, 0), (3, 3))
-
-    np.testing.assert_allclose(expected, result)
-
-
-def test_composite_subtile_nonsquare(hd_tiles_green_mask, color_green):
-    '''Ensure non-square image is stitched correctly with square tiles.'''
-
-    # Gamma correction not needed for fully saturated green channel
-    expected = np.ones((1080, 1920, 3)) * [0, 1, 0]
-
-    inputs = []
-
-    for y in range(0, 2):
-        for x in range(0, 2):
-            inputs += [{
-                'min': 0,
-                'max': 1,
-                'grid': (y, x),
-                'image': hd_tiles_green_mask[y][x],
-                'color': color_green
-            }]
-
-    result = composite_subtiles(inputs, (1024, 1024),
-                                (0, 0), (1080, 1920))
+        'image': 255 * np.ones((56, 896), dtype=np.uint8),
+        'color': color_white
+    }], (1024, 1024), (0, 0), (1080, 1920))
 
     np.testing.assert_allclose(expected, result)
 
