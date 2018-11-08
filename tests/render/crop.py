@@ -166,38 +166,6 @@ def real_tiles_green_mask(dirname):
 
 
 @pytest.fixture(scope='module')
-def level0_tiles_green_mask():
-    '''Nine 2x2 pixel tiles, green channel.'''
-
-    return [
-        [
-            np.array([
-                [0, 255],
-                [0, 0]
-            ], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
-def level0_tiles_red_mask():
-    '''Nine 2x2 pixel tiles, red channel.'''
-
-    return [
-        [
-            np.array([
-                [0, 0],
-                [255, 0]
-            ], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8),
-            np.zeros([2, 2], dtype=np.uint8)
-        ],
-    ] * 3
-
-
-@pytest.fixture(scope='module')
 def checker_4x4():
     '''One 6x6 pixel image stitched from nine tiles.'''
 
@@ -434,24 +402,20 @@ def test_extract_subtile_clipped_tile():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_blending(level0_tiles_red_mask, color_red,
-                                    level0_tiles_green_mask, color_green):
+def test_composite_subtile_blending(color_red, color_green):
     '''Ensure compositing with existing content of stitched region'''
-
-    first_tile = level0_tiles_red_mask[0][0]
-    second_tile = level0_tiles_green_mask[0][0]
 
     expected = np.array([
         [[0, 0, 0], [0, 1, 0]],
-        [[1, 0, 0], [0, 0, 0]],
+        [[1, 0, 0], [1, 1, 0]],
     ])
 
-    result = np.zeros((2, 2) + (3,))
-
-    result = composite_subtile(result, first_tile, (0, 0),
-                               color_red, 0, 1)
-    result = composite_subtile(result, second_tile, (0, 0),
-                               color_green, 0, 1)
+    result = composite_subtile(np.zeros((2, 2) + (3,)),
+                               np.array([[0, 0], [255, 255]], dtype=np.uint8),
+                               (0, 0), color_red, 0, 1)
+    result = composite_subtile(result,
+                               np.array([[0, 255], [0, 255]], dtype=np.uint8),
+                               (0, 0), color_green, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
 
