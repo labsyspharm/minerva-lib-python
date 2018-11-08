@@ -525,6 +525,23 @@ def test_composite_subtile_nonsquare(color_white):
     np.testing.assert_allclose(expected, result)
 
 
+def test_composite_subtile_gamma(color_orange):
+    '''Render a single tile testing gamma correction'''
+
+    # Gamma correction not needed for fully saturated white
+    expected = np.ones((1024, 1024, 3)) * [1,  0.72974005, 0]
+
+    result = composite_subtiles([{
+        'min': 0,
+        'max': 1,
+        'grid': (0, 0),
+        'image': 255 * np.ones((1024, 1024), dtype=np.uint8),
+        'color': color_orange
+    }], (1024, 1024), (0, 0), (1024, 1024))
+
+    np.testing.assert_allclose(expected, result)
+
+
 def test_composite_subtiles_real(real_tiles_green_mask, real_tiles_red_mask,
                                  color_red, color_green,
                                  real_stitched_with_gamma):
