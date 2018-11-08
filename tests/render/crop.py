@@ -198,21 +198,6 @@ def level0_tiles_red_mask():
 
 
 @pytest.fixture(scope='module')
-def level0_stitched_green_rgba(color_black, color_green):
-    '''One 6x6 pixel green channel stitched from nine tiles.'''
-
-    row_0 = [
-        color_black, color_green, color_black,
-        color_black, color_black, color_black
-    ]
-    row_1 = [
-        color_black, color_black, color_black,
-        color_black, color_black, color_black
-    ]
-    return np.array([row_0, row_1] * 3, dtype=np.uint8)
-
-
-@pytest.fixture(scope='module')
 def checker_4x4():
     '''One 6x6 pixel image stitched from nine tiles.'''
 
@@ -471,21 +456,20 @@ def test_composite_subtile_blending(level0_tiles_red_mask, color_red,
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_cropping(level0_stitched_green_rgba,
-                                    level0_tiles_green_mask, color_green):
-    '''Test correct cropping of single channel without rendering.'''
+def test_composite_subtile_aligning(color_white):
+    '''Test correct alignment when compositing of two tiles.'''
 
-    expected = level0_stitched_green_rgba
+    expected = np.array([
+        [[0] * 3, [1] * 3, [0] * 3],
+        [[1] * 3, [0] * 3, [0] * 3],
+        [[0] * 3, [1] * 3, [0] * 3]
+    ])
 
-    tiles = level0_tiles_green_mask
-    result = np.zeros((6, 6) + (3,))
-
-    result = composite_subtile(result, tiles[0][0], (0, 0),
-                               color_green, 0, 1)
-    result = composite_subtile(result, tiles[1][0], (2, 0),
-                               color_green, 0, 1)
-    result = composite_subtile(result, tiles[2][0], (4, 0),
-                               color_green, 0, 1)
+    result = composite_subtile(np.zeros((3, 3) + (3,)),
+                               np.array([[0, 255], [255, 0]], dtype=np.uint8),
+                               (0, 0), color_white, 0, 1)
+    result = composite_subtile(result, np.array([[0, 255]], dtype=np.uint8),
+                               (2, 0), color_white, 0, 1)
 
     np.testing.assert_array_equal(expected, result)
 
