@@ -1,4 +1,4 @@
-'''Compare crop results with expected output'''
+'''Compare crop results with expected output.'''
 
 import pytest
 import numpy as np
@@ -17,6 +17,31 @@ from tests.common.colors import (color_white, color_red, color_green,
 
 FILENAME = getframeinfo(currentframe()).filename
 DIRNAME = Path(FILENAME).resolve().parent.parent
+
+
+@pytest.fixture(scope='module')
+def real_stitched_with_gamma():
+    '''Loads a local red/green composite image from a npy file.
+
+    The red/green composite image originates from a call to the
+    blend.composite_channels function with the following arguments:
+
+    [{
+        image: # from {URL}/C0-T0-Z0-L0-Y0-X0.png
+        color: [1, 0, 0]
+        min: 0
+        max: 1
+    },{
+        image: # from {URL}/C1-T0-Z0-L0-Y0-X0.png
+        color: [0, 1, 0]
+        min: 0.006
+        max: 0.024
+    }]
+
+    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles
+    '''
+
+    return np.load(Path(DIRNAME, 'data/red_green_normalized.npy').resolve())
 
 
 @pytest.fixture(scope='module')
@@ -47,31 +72,6 @@ def real_tiles_red_mask():
             np.load(Path(DIRNAME, 'data/red/3/3/tile.npy').resolve())
         ],
     ]
-
-
-@pytest.fixture(scope='module')
-def real_stitched_with_gamma():
-    '''Loads a local red/green composite image from a npy file.
-
-    The red/green composite image originates from a call to the
-    blend.composite_channels function with the following arguments:
-
-    [{
-        image: # from {URL}/C0-T0-Z0-L0-Y0-X0.png
-        color: [1, 0, 0]
-        min: 0
-        max: 1
-    },{
-        image: # from {URL}/C1-T0-Z0-L0-Y0-X0.png
-        color: [0, 1, 0]
-        min: 0.006
-        max: 0.024
-    }]
-
-    where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles
-    '''
-
-    return np.load(Path(DIRNAME, 'data/red_green_normalized.npy').resolve())
 
 
 @pytest.fixture(scope='module')
@@ -112,7 +112,7 @@ def real_tiles_green_mask():
 
 @pytest.fixture(scope='module')
 def checker_4x4():
-    '''One 6x6 pixel image stitched from nine tiles.'''
+    '''One 4x4 pixel image of four identical 2x2 tiles.'''
 
     return np.array([
         [[0, 0, 0], [1, 1, 1]] * 2,
@@ -121,7 +121,12 @@ def checker_4x4():
 
 
 def test_scale_image_aliasing(checker_4x4):
-    '''Test downsampling to 3/4 size without interpolation.'''
+    '''Ensure expected nearest neighbor aliasing when scaling in y and x.
+
+    The function does not interpolate, so the checkerboard will not evenly
+    sample. The second column and second row will be missing, so the other
+    values will shift to scale from 4x4 to 3x3.
+    '''
 
     expected = np.array([
         [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
@@ -135,7 +140,12 @@ def test_scale_image_aliasing(checker_4x4):
 
 
 def test_scale_image_asymetry(checker_4x4):
-    '''Test downsampling only in y to 3/4 size without interpolation.'''
+    '''Ensure expected nearest neighbor aliasing when scaling only in y.
+
+    Due to aliasing, the second column will be missing, so the other columns
+    will shift to scale from 4x4 to 3x4. All four rows should remain with 3
+    of the original 4 values.
+    '''
 
     expected = np.array([
         [[0, 0, 0], [0, 0, 0], [1, 1, 1]],
@@ -150,7 +160,7 @@ def test_scale_image_asymetry(checker_4x4):
 
 
 def test_scale_image_invalid_factor():
-    '''Test downsampling level0 to 0% fails.'''
+    '''Ensure inability to downsample arbitrary color image to 0%.'''
 
     with pytest.raises(ValueError):
         scale_image_nearest_neighbor(np.array([
@@ -160,7 +170,12 @@ def test_scale_image_invalid_factor():
 
 
 def test_get_optimum_pyramid_level_higher():
-    '''Test higher resolution than needed for output shape.'''
+    '''Test higher resolution than needed for output shape.
+
+    We would downscale a 6x6 image to 4x4 pixels if we prefer an output
+    image taken from a higher-resolution pyramid level. For a 6x6 image,
+    this means we need the highest resolution available, level 0.
+    '''
 
     expected = 0
 
@@ -171,7 +186,12 @@ def test_get_optimum_pyramid_level_higher():
 
 
 def test_get_optimum_pyramid_level_lower():
-    '''Test lower resolution than needed for output shape'''
+    '''Test lower resolution than needed for output shape.
+
+    We would upscale a 3x3 image to 4x4 pixels if we prefer an output
+    image taken from a lower-resolution pyramid level. For a 6x6 image,
+    this means we need a half-resolution 3x3 image, level 1.
+    '''
 
     expected = 1
 
@@ -182,7 +202,7 @@ def test_get_optimum_pyramid_level_lower():
 
 
 def test_transform_coordinates_full_scale():
-    '''Test keeping level 0 coordinates unchanged'''
+    '''Ensure scaling to level 0 keeps the coordinates unchanged.'''
 
     expected = np.array((6, 6), dtype=np.int64)
 
@@ -192,7 +212,7 @@ def test_transform_coordinates_full_scale():
 
 
 def test_transform_coordinates_half_scale():
-    '''Test scaling level 0 coordinates to level 1 coordinates'''
+    '''Ensure scaling to level 1 divides the coordinates in half.'''
 
     expected = np.array((3, 3), dtype=np.int64)
 
@@ -202,7 +222,11 @@ def test_transform_coordinates_half_scale():
 
 
 def test_select_position_inner_tile():
-    '''Test ability to position tile in middle of image.'''
+    '''Test ability to position tile within the output image.
+
+    The origin of a 2x2 tile at column 1, row 1 of the tile grid
+    should be 2, 2 within any output image with an origin at 0, 0.
+    '''
 
     expected = (2, 2)
 
@@ -212,7 +236,11 @@ def test_select_position_inner_tile():
 
 
 def test_get_first_grid_inner_tile():
-    '''Ensure correct lower bound for origin after first tile'''
+    '''Test ability to index the output image origin within the tile grid.
+
+    The 2x2 tile found at column 1, row 1 of the tile grid should
+    begin at the origin of any output image with an origin at 2, 2.
+    '''
 
     expected = (1, 1)
 
@@ -222,7 +250,14 @@ def test_get_first_grid_inner_tile():
 
 
 def test_get_grid_shape_clipped_tiles():
-    '''Ensure correct upper bound within level0 shape.'''
+    '''Ensure the grid shape counts inner tiles and partial edge tiles.
+
+    When we measure 6x6 pixels starting from an origin of 3x3 on a grid of
+    2x2 tiles, the region should cover 4 columns and 4 rows of tiles. The
+    region begins within the tile at column 1, row 1. The region ends in
+    the tile at column 4, row 4. We must count the full range of 4 tiles
+    in either dimension.
+    '''
 
     expected = (4, 4)
 
@@ -282,8 +317,13 @@ def test_validate_region_negative():
     )
 
 
-def test_select_grids_sub_region():
-    '''Ensure selection of two tiles for partial region.'''
+def test_select_grids_odd_edges():
+    '''Ensure selection of tiles identifies partial tiles at edges.
+
+    The output image needs exactly 1 pixel from each of 4 tiles along
+    two rows and columns of the tile grid. This should give the correct
+    indices of all partially needed tiles.
+    '''
 
     expected = [
         (1, 1),
@@ -292,17 +332,18 @@ def test_select_grids_sub_region():
         (2, 2)
     ]
 
-    result = select_grids(
-        (2, 2),
-        (3, 3),
-        (2, 2)
-    )
+    result = select_grids((2, 2), (3, 3), (2, 2))
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_grids_full_region():
-    '''Ensure selection of all available tiles for full region.'''
+def test_select_grids_odd_end():
+    '''Ensure selection of tiles includes a full tile and partial tiles.
+
+    The output image needs all pixels from the first tile as well as
+    portions of the other three tiles on the edge of the region. This
+    should give the correct indices of the full and partial tiles.
+    '''
 
     expected = [
         (0, 0),
@@ -316,8 +357,32 @@ def test_select_grids_full_region():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_select_subregion_ceiling_tile():
-    '''Ensure partial tile is selected when full tile unavailable.'''
+def test_select_subregion_odd_edges():
+    '''Test tile subregion for tile containing the output image origin.
+
+    The output image needs only the last pixel from the tile that contains
+    the output image origin in y and x. The returned coordinates should
+    specify the selection of the last pixel from this tile in y and x.
+    '''
+
+    expected = [
+        (1, 1),
+        (2, 2)
+    ]
+
+    result = select_subregion((0, 0), (2, 2),
+                              (1, 1), (2, 2))
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_select_subregion_odd_end():
+    '''Test tile subregion for tile at end of output image.
+
+    The output image needs only the first pixel from the tile that contains
+    the end of the output image in y and x. The returned coordinates should
+    specify the selection of the first pixel from this tile in y and x.
+    '''
 
     expected = [
         (0, 0),
@@ -330,8 +395,13 @@ def test_select_subregion_ceiling_tile():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_extract_subtile_clipped_tile():
-    '''Ensure partial tile is extracted when full tile unnecessary.'''
+def test_extract_subtile_half_tile():
+    '''Test extracting a subtile at half the height of a full tile.
+
+    The output image requires the last row of pixels from a tile in row 0 and
+    the first row of pixels from a tile in row 1. When cropping from row 0,
+    the result should match the last row of pixels in the tile.
+    '''
 
     expected = np.array([
         [[1, 1, 1], [0, 0, 0]]
@@ -340,15 +410,62 @@ def test_extract_subtile_clipped_tile():
     result = extract_subtile((0, 0), (2, 2),
                              (1, 0), (2, 2),
                              np.array([
-                                [[0, 0, 0], [1, 1, 1]],
+                                [[0, 0, 0], [1, 0, 0]],
                                 [[1, 1, 1], [0, 0, 0]]
                              ]))
 
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_blending():
-    '''Ensure compositing with existing content of stitched region'''
+def test_composite_subtile_normalize():
+    '''Test uniform normalization of 16-bit and 8-bit integers.
+
+    The two function calls should each add normalized pixels from tiles
+    of completely different bit depths.
+    '''
+
+    expected = np.array([
+        [[1, 1, 1], [1, 1, 1]]
+    ])
+
+    result = composite_subtile(np.zeros((1, 2) + (3,)),
+                               np.array([[255, 0]], dtype=np.uint8),
+                               (0, 0), color_white, 0, 1)
+    result = composite_subtile(result,
+                               np.array([[0, 65535]], dtype=np.uint16),
+                               (0, 0), color_white, 0, 1)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_composite_subtile_threshold():
+    '''Test addition of low-threshold and high-threshold image pixels.
+
+    The first function call adds dark red to both pixels, then the second
+    function call adds gray to the second pixel. The second pixel should be
+    a light pink due to the addition of the two colors.
+    '''
+    expected = np.array([
+        [[0.5, 0, 0], [1, 0.5, 0.5]]
+    ])
+
+    result = composite_subtile(np.zeros((1, 2) + (3,)),
+                               np.array([[55535] * 2], dtype=np.uint16),
+                               (0, 0), color_red, 45535 / 65535, 1)
+    result = composite_subtile(result,
+                               np.array([[0, 50]], dtype=np.uint16),
+                               (0, 0), color_white, 0, 100 / 65535)
+
+    np.testing.assert_array_equal(expected, result)
+
+
+def test_composite_subtile_blend():
+    '''Test linearly blending red and green for a single tile.
+
+    The first function call should add red to the last row of pixels.
+    The last function call should add green to the last column of pixels.
+    The last pixel in x nad y should show the composite sum as yellow.
+    '''
 
     expected = np.array([
         [[0, 0, 0], [0, 1, 0]],
@@ -365,8 +482,13 @@ def test_composite_subtile_blending():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_aligning():
-    '''Test correct alignment when compositing of two tiles.'''
+def test_composite_subtile_stitch():
+    '''Test correct alignment when compositing two tiles at two y indices.
+
+    The first function call should add to the second pixels in the first row
+    and column of pixels while the second function call should add to the
+    second pixel in the last row of pixels.
+    '''
 
     expected = np.array([
         [[0] * 3, [1] * 3, [0] * 3],
@@ -383,8 +505,14 @@ def test_composite_subtile_aligning():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_nonsquare():
-    '''Stitch a non-square image from 1 full and 3 edge tiles.'''
+def test_composite_subtiles_nonsquare():
+    '''Stitch a non-square image from 1 full and 3 edge tiles.
+
+    The four tiles should completely cover a 1080x1920 output image. The
+    tiles must line up such that the dimensions of each differently sized
+    tile exactly fits at the right position to fill the full rectangular
+    image when combined.
+    '''
 
     # Gamma correction not needed for fully saturated white
     expected = np.ones((1080, 1920, 3))
@@ -418,8 +546,13 @@ def test_composite_subtile_nonsquare():
     np.testing.assert_allclose(expected, result)
 
 
-def test_composite_subtile_gamma():
-    '''Render a single tile testing gamma correction'''
+def test_composite_subtiles_gamma():
+    '''Render a single tile testing gamma correction.
+
+    The color orange, when fully rendered with a gamma of 2.2, should
+    show a gamma-corrected higher value in the green channel with no change
+    at the higher and lower extremes of red and blue.
+    '''
 
     # Gamma correction not needed for fully saturated white
     expected = np.ones((1024, 1024, 3)) * [1,  0.72974005, 0]
@@ -437,7 +570,11 @@ def test_composite_subtile_gamma():
 
 def test_composite_subtiles_real(real_tiles_green_mask, real_tiles_red_mask,
                                  real_stitched_with_gamma):
-    '''Ensure 1024 x 1024 image matches image rendered without tiling.'''
+    '''Ensure sixteen tiles match the image made with one large tile.
+
+    Sixteen tiles per channel should stitch and composite to exactly match
+    the same image previously rendered with one tile per channel.
+    '''
 
     expected = real_stitched_with_gamma
 
