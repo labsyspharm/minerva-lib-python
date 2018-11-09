@@ -12,66 +12,45 @@ from minerva_lib.render import (scale_image_nearest_neighbor,
                                 validate_region_bounds, select_subregion,
                                 select_position, composite_subtile,
                                 composite_subtiles, extract_subtile)
+from tests.common.colors import (color_white, color_red, color_green,
+                                 color_orange)
+
+FILENAME = getframeinfo(currentframe()).filename
+DIRNAME = Path(FILENAME).resolve().parent.parent
 
 
 @pytest.fixture(scope='module')
-def dirname():
-    filename = getframeinfo(currentframe()).filename
-    return Path(filename).resolve().parent.parent
-
-
-@pytest.fixture(scope='module')
-def color_white():
-    return np.array([1, 1, 1], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_red():
-    return np.array([1, 0, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_green():
-    return np.array([0, 1, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def color_orange():
-    return np.array([1, .5, 0], dtype=np.float32)
-
-
-@pytest.fixture(scope='module')
-def real_tiles_red_mask(dirname):
+def real_tiles_red_mask():
     return [
         [
-            np.load(Path(dirname, 'data/red/0/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/1/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/2/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/3/0/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/red/0/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/1/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/2/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/3/0/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/red/0/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/1/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/2/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/3/1/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/red/0/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/1/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/2/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/3/1/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/red/0/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/1/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/2/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/3/2/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/red/0/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/1/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/2/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/3/2/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/red/0/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/1/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/2/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/red/3/3/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/red/0/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/1/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/2/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/red/3/3/tile.npy').resolve())
         ],
     ]
 
 
 @pytest.fixture(scope='module')
-def real_stitched_with_gamma(dirname):
+def real_stitched_with_gamma():
     '''Loads a local red/green composite image from a npy file.
 
     The red/green composite image originates from a call to the
@@ -92,11 +71,11 @@ def real_stitched_with_gamma(dirname):
     where {URL} is https://s3.amazonaws.com/minerva-test-images/png_tiles
     '''
 
-    return np.load(Path(dirname, 'data/red_green_normalized.npy').resolve())
+    return np.load(Path(DIRNAME, 'data/red_green_normalized.npy').resolve())
 
 
 @pytest.fixture(scope='module')
-def real_tiles_green_mask(dirname):
+def real_tiles_green_mask():
     '''Loads 256x256 px image tiles from npy files.
 
     The tiles originate from a 1024x1024 px file at {URL}/C1-T0-Z0-L0-Y0-X0.png
@@ -105,28 +84,28 @@ def real_tiles_green_mask(dirname):
 
     return [
         [
-            np.load(Path(dirname, 'data/green/0/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/1/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/2/0/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/3/0/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/green/0/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/1/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/2/0/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/3/0/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/green/0/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/1/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/2/1/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/3/1/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/green/0/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/1/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/2/1/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/3/1/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/green/0/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/1/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/2/2/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/3/2/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/green/0/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/1/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/2/2/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/3/2/tile.npy').resolve())
         ],
         [
-            np.load(Path(dirname, 'data/green/0/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/1/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/2/3/tile.npy').resolve()),
-            np.load(Path(dirname, 'data/green/3/3/tile.npy').resolve())
+            np.load(Path(DIRNAME, 'data/green/0/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/1/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/2/3/tile.npy').resolve()),
+            np.load(Path(DIRNAME, 'data/green/3/3/tile.npy').resolve())
         ],
     ]
 
@@ -368,7 +347,7 @@ def test_extract_subtile_clipped_tile():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_blending(color_red, color_green):
+def test_composite_subtile_blending():
     '''Ensure compositing with existing content of stitched region'''
 
     expected = np.array([
@@ -386,7 +365,7 @@ def test_composite_subtile_blending(color_red, color_green):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_aligning(color_white):
+def test_composite_subtile_aligning():
     '''Test correct alignment when compositing of two tiles.'''
 
     expected = np.array([
@@ -404,7 +383,7 @@ def test_composite_subtile_aligning(color_white):
     np.testing.assert_array_equal(expected, result)
 
 
-def test_composite_subtile_nonsquare(color_white):
+def test_composite_subtile_nonsquare():
     '''Stitch a non-square image from 1 full and 3 edge tiles.'''
 
     # Gamma correction not needed for fully saturated white
@@ -439,7 +418,7 @@ def test_composite_subtile_nonsquare(color_white):
     np.testing.assert_allclose(expected, result)
 
 
-def test_composite_subtile_gamma(color_orange):
+def test_composite_subtile_gamma():
     '''Render a single tile testing gamma correction'''
 
     # Gamma correction not needed for fully saturated white
@@ -457,7 +436,6 @@ def test_composite_subtile_gamma(color_orange):
 
 
 def test_composite_subtiles_real(real_tiles_green_mask, real_tiles_red_mask,
-                                 color_red, color_green,
                                  real_stitched_with_gamma):
     '''Ensure 1024 x 1024 image matches image rendered without tiling.'''
 
