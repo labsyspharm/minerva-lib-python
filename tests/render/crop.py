@@ -249,7 +249,7 @@ def test_get_first_grid_inner_tile():
     np.testing.assert_array_equal(expected, result)
 
 
-def test_get_grid_shape_clipped_tiles():
+def test_get_grid_shape_inner_tiles():
     '''Ensure the grid shape counts inner tiles and partial edge tiles.
 
     When we measure 6x6 pixels starting from an origin of 3x3 on a grid of
