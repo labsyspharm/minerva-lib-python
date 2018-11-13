@@ -111,7 +111,7 @@ def real_tiles_green_mask():
 
 
 @pytest.fixture(scope='module')
-def checker_4x4():
+def checkerboard_4x4():
     '''One 4x4 pixel image of four identical 2x2 tiles.'''
 
     return np.array([
@@ -120,8 +120,8 @@ def checker_4x4():
     ] * 2)
 
 
-def test_scale_image_aliasing(checker_4x4):
-    '''Ensure expected nearest neighbor aliasing when scaling in y and x.
+def test_scale_image_aliasing(checkerboard_4x4):
+    '''Test that nearest neighbor causes aliasing when scaling in y and x.
 
     The function does not interpolate, so the checkerboard will not evenly
     sample. The second column and second row will be missing, so the other
@@ -134,17 +134,17 @@ def test_scale_image_aliasing(checker_4x4):
         [[1, 1, 1], [1, 1, 1], [0, 0, 0]]
     ])
 
-    result = scale_image_nearest_neighbor(checker_4x4, 3 / 4)
+    result = scale_image_nearest_neighbor(checkerboard_4x4, 3 / 4)
 
     np.testing.assert_allclose(expected, result)
 
 
-def test_scale_image_asymetry(checker_4x4):
-    '''Ensure expected nearest neighbor aliasing when scaling only in y.
+def test_scale_image_asymetry(checkerboard_4x4):
+    '''Test that nearest neighbor causes aliasing when scaling only in y.
 
     Due to aliasing, the second column will be missing, so the other columns
-    will shift to scale from 4x4 to 3x4. All four rows should remain with 3
-    of the original 4 values.
+    will shift to scale from 4x4 to 3x4. All four rows should remain with only
+    3 of 4 values per row.
     '''
 
     expected = np.array([
@@ -154,13 +154,13 @@ def test_scale_image_asymetry(checker_4x4):
         [[1, 1, 1], [1, 1, 1], [0, 0, 0]]
     ])
 
-    result = scale_image_nearest_neighbor(checker_4x4, (1, 3 / 4))
+    result = scale_image_nearest_neighbor(checkerboard_4x4, (1, 3 / 4))
 
     np.testing.assert_allclose(expected, result)
 
 
 def test_scale_image_invalid_factor():
-    '''Ensure inability to downsample arbitrary color image to 0%.'''
+    '''Ensure inability to downsample arbitrary r, g, b image to 0%.'''
 
     with pytest.raises(ValueError):
         scale_image_nearest_neighbor(np.array([
@@ -170,7 +170,7 @@ def test_scale_image_invalid_factor():
 
 
 def test_get_optimum_pyramid_level_higher():
-    '''Test higher resolution than needed for output shape.
+    '''Test pyramid level if requesting higher resolution than needed.
 
     We would downscale a 6x6 image to 4x4 pixels if we prefer an output
     image taken from a higher-resolution pyramid level. For a 6x6 image,
@@ -186,7 +186,7 @@ def test_get_optimum_pyramid_level_higher():
 
 
 def test_get_optimum_pyramid_level_lower():
-    '''Test lower resolution than needed for output shape.
+    '''Test pyramid level if requesting lower resolution than needed.
 
     We would upscale a 3x3 image to 4x4 pixels if we prefer an output
     image taken from a lower-resolution pyramid level. For a 6x6 image,
@@ -236,10 +236,10 @@ def test_select_position_inner_tile():
 
 
 def test_get_first_grid_inner_tile():
-    '''Test ability to index the output image origin within the tile grid.
+    '''Test ability to find the tile with the origin of the output image.
 
-    The 2x2 tile found at column 1, row 1 of the tile grid should
-    begin at the origin of any output image with an origin at 2, 2.
+    The tile found at column 1, row 1 of the 2x2 tile grid should
+    be the first tile of an output image with an origin at 2, 2.
     '''
 
     expected = (1, 1)
@@ -250,7 +250,7 @@ def test_get_first_grid_inner_tile():
 
 
 def test_get_grid_shape_inner_tiles():
-    '''Ensure the grid shape counts inner tiles and partial edge tiles.
+    '''Ensure the grid shape measures both inner tiles and partial edge tiles.
 
     When we measure 6x6 pixels starting from an origin of 3x3 on a grid of
     2x2 tiles, the region should cover 4 columns and 4 rows of tiles. The
@@ -318,7 +318,7 @@ def test_validate_region_negative():
 
 
 def test_select_grids_odd_edges():
-    '''Ensure selection of tiles identifies partial tiles at edges.
+    '''Ensure selection of tiles includes partial tiles at edges.
 
     The output image needs exactly 1 pixel from each of 4 tiles along
     two rows and columns of the tile grid. This should give the correct
@@ -358,7 +358,7 @@ def test_select_grids_odd_end():
 
 
 def test_select_subregion_odd_edges():
-    '''Test tile subregion for tile containing the output image origin.
+    '''Test tile subregion within the tile at the output image origin.
 
     The output image needs only the last pixel from the tile that contains
     the output image origin in y and x. The returned coordinates should
@@ -421,7 +421,8 @@ def test_composite_subtile_normalize():
     '''Test uniform normalization of 16-bit and 8-bit integers.
 
     The two function calls should each add normalized pixels from tiles
-    of completely different bit depths.
+    of completely different bit depths. The pixels from each tile should
+    identically render as the color white.
     '''
 
     expected = np.array([
@@ -464,7 +465,7 @@ def test_composite_subtile_blend():
 
     The first function call should add red to the last row of pixels.
     The last function call should add green to the last column of pixels.
-    The last pixel in x nad y should show the composite sum as yellow.
+    The last pixel in x nad y should render the composite sum as yellow.
     '''
 
     expected = np.array([
@@ -485,9 +486,8 @@ def test_composite_subtile_blend():
 def test_composite_subtile_stitch():
     '''Test correct alignment when compositing two tiles at two y indices.
 
-    The first function call should add to the second pixels in the first row
-    and column of pixels while the second function call should add to the
-    second pixel in the last row of pixels.
+    The first tile should add the second pixel in y and the second pixel in x.
+    Tthe second tile should add the second pixel in the last row.
     '''
 
     expected = np.array([
@@ -551,7 +551,7 @@ def test_composite_subtiles_gamma():
 
     The color orange, when fully rendered with a gamma of 2.2, should
     show a gamma-corrected higher value in the green channel with no change
-    at the higher and lower extremes of red and blue.
+    at the higher and lower extremes of the red and blue channels.
     '''
 
     # Gamma correction not needed for fully saturated white
