@@ -2,9 +2,13 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
+import time, logging, threading
+
+logger = logging.getLogger()
 
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
+    t = time.time()
     ''' Render _image_ in pseudocolor and composite into _target_
 
     By default, a new output array will be allocated to hold
@@ -35,6 +39,9 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     # Colorize and add the new channel to composite image
     for i, component in enumerate(color):
         out[:, :, i] += f64_image * component
+
+    t = round((time.time() - t) * 1000)
+    logger.info("Composite channel %s ms", t)
 
     return out
 
@@ -391,3 +398,37 @@ def composite_subtiles(tiles, tile_shape, output_origin, output_shape,
     # Return gamma correct image within 0, 1
     np.clip(out, 0, 1, out=out)
     return ski.adjust_gamma(out, 1 / target_gamma)
+
+
+class Renderer:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.out_buffer = None
+        self.shape = None
+
+    def add_channel(self, channel):
+        # Ensure that dimensions of all channels are equal
+        shape = channel['image'].shape
+        if self.shape is None:
+            self.shape = shape
+        elif shape != self.shape:
+            raise ValueError('All channel images must have equal dimensions')
+
+        self.lock.acquire()
+        logger.info("Blending channel %s", channel["index"])
+        # Final buffer for blending
+        if self.out_buffer is None:
+            # Shape of 3 color image
+            shape_color = shape + (3,)
+            self.out_buffer = np.zeros(shape_color, dtype=np.float32)
+
+        args = map(channel.get, ['image', 'color', 'min', 'max'])
+        composite_channel(self.out_buffer, *args, out=self.out_buffer)
+        self.lock.release()
+
+    def apply_gamma(self):
+        np.clip(self.out_buffer, 0, 1, out=self.out_buffer)
+        self.out_buffer = ski.adjust_gamma(self.out_buffer, 1 / 2.2)
+
+    def get_image(self):
+        return self.out_buffer
