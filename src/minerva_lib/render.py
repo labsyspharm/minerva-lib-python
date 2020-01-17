@@ -27,14 +27,14 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     if out is None:
         out = target.copy()
 
-    # Rescale the new channel to a float64 between 0 and 1
-    f64_range = (range_min, range_max)
-    f64_image = ski.img_as_float(image)
-    f64_image = ski.rescale_intensity(f64_image, f64_range)
+    # Rescale the new channel to a float32 between 0 and 1
+    f32_range = (range_min, range_max)
+    f32_image = ski.img_as_float(image, dtype=np.float32)
+    f32_image = ski.rescale_intensity(f32_image, f32_range)
 
     # Colorize and add the new channel to composite image
     for i, component in enumerate(color):
-        out[:, :, i] += f64_image * component
+        out[:, :, i] += f32_image * component
 
     return out
 
@@ -78,7 +78,6 @@ def composite_channels(channels):
 
     # rescaled images and normalized colors
     for channel in channels:
-
         # Add all three channels to output buffer
         args = map(channel.get, ['image', 'color', 'min', 'max'])
         composite_channel(out_buffer, *args, out=out_buffer)

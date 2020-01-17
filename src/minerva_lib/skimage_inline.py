@@ -404,7 +404,7 @@ def convert(image, dtype, force_copy=False, uniform=False):
 
 
 # skimage.util.dtype.img_as_float
-def img_as_float(image, force_copy=False):
+def img_as_float(image, force_copy=False, dtype=np.floating):
     """Convert an image to floating point format.
     This function is similar to `img_as_float64`, but will not convert
     lower-precision floating point arrays to `float64`.
@@ -425,10 +425,11 @@ def img_as_float(image, force_copy=False):
     If the input image has a float type, intensity values are not modified
     and can be outside the ranges [0.0, 1.0] or [-1.0, 1.0].
     """
-    return convert(image, np.floating, force_copy)
+    return convert(image, dtype, force_copy)
 
 
 # skimage.exposure.exposure.rescale_intensity
+#@profile
 def rescale_intensity(image, in_range='image', out_range='dtype'):
     """Return image after stretching or shrinking its intensity levels.
     The desired intensity range of the input and output, `in_range` and
@@ -486,15 +487,16 @@ def rescale_intensity(image, in_range='image', out_range='dtype'):
     >>> rescale_intensity(image, out_range=(0, 127))
     array([  0,  63, 127], dtype=int8)
     """
-    dtype = image.dtype.type
-
     imin, imax = intensity_range(image, in_range)
     omin, omax = intensity_range(image, out_range, clip_negative=(imin >= 0))
 
-    image = np.clip(image, imin, imax)
+    np.clip(image, imin, imax, out=image)
 
-    image = (image - imin) / float(imax - imin)
-    return np.array(image * (omax - omin) + omin, dtype=dtype)
+    image -= imin
+    factor = (omax - omin) / float(imax - imin)
+    image *= factor
+    image += omin
+    return image
 
 
 # skimage.exposure.exposure.adjust_gamma
@@ -537,12 +539,13 @@ def adjust_gamma(image, gamma=1, gain=1):
     True
     """
     _assert_non_negative(image)
-    dtype = image.dtype.type
 
     if gamma < 0:
         raise ValueError("Gamma should be a non-negative real number.")
 
     scale = float(dtype_limits(image, True)[1] - dtype_limits(image, True)[0])
-
-    out = ((image / scale) ** gamma) * scale * gain
-    return dtype(out)
+    image /= scale
+    image **= gamma
+    scale_times_gain = scale * gain
+    image *= scale_times_gain
+    return image
