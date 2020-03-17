@@ -429,7 +429,6 @@ def img_as_float(image, force_copy=False, dtype=np.floating):
 
 
 # skimage.exposure.exposure.rescale_intensity
-#@profile
 def rescale_intensity(image, in_range='image', out_range='dtype'):
     """Return image after stretching or shrinking its intensity levels.
     The desired intensity range of the input and output, `in_range` and
@@ -544,7 +543,7 @@ def adjust_gamma(image, gamma=1, gain=1):
         raise ValueError("Gamma should be a non-negative real number.")
 
     scale = float(dtype_limits(image, True)[1] - dtype_limits(image, True)[0])
-    image /= scale
+    image *= (1/scale)
     image **= gamma
     scale_times_gain = scale * gain
     image *= scale_times_gain

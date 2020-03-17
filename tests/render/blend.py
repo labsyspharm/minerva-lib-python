@@ -3,7 +3,7 @@
 import pytest
 import numpy as np
 from minerva_lib.render import composite_channel, composite_channels
-
+import time, random, math
 
 @pytest.fixture
 def range_all():
@@ -253,3 +253,47 @@ def test_channels_size_zero():
 
     with pytest.raises(ValueError):
         composite_channels([])
+
+def _blend_random_image(times, output):
+    total = 0
+    for i in range(times):
+        channels = []
+        for channel in range(4):
+            test_img = np.random.random_integers(0, 255, (1024, 1024))
+            color = (random.random(), random.random(), random.random())
+            a = random.random()
+            b = random.random()
+
+            channel = {
+                "image": test_img,
+                "color": color,
+                "min": min(a,b),
+                "max": max(a,b)
+            }
+            channels.append(channel)
+
+        start = time.time()
+        composite_channels(channels)
+        t = round((time.time() - start) * 1000)
+        total += t
+
+    return total
+
+def test_performance():
+    print("Initializing test image arrays")
+    shape = (1024, 1024)
+    # Shape of 3 color image
+    shape_color = shape + (3,)
+    output = np.zeros(shape_color, dtype=np.float32)
+    total = 0
+
+    # warm up
+    _blend_random_image(2, output)
+
+    random.seed(2020)
+
+    # actual benchmark
+    total += _blend_random_image(20, output)
+
+    print("Total time: ", total)
+    print("Per composite: ", total // 20)

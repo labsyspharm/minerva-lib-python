@@ -38,7 +38,6 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     return out
 
-
 def composite_channels(channels):
     '''Render each image in _channels_ additively into a composited image
 
