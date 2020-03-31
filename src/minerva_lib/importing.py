@@ -130,14 +130,7 @@ class MinervaImporter:
         return credentials, bucket, prefix
 
     def _get_image_credentials(self, image_uuid):
-        res = self.minerva_client.get_image_credentials(image_uuid)
-        logging.info(res)
-
-        m = re.match(r"^s3://([A-z0-9\-]+)/([A-z0-9\-]+)/$", res["data"]["image_url"])
-        bucket = m.group(1)
-        prefix = m.group(2)
-        credentials = res["data"]["credentials"]
-        return credentials, bucket, prefix
+        return self.minerva_client.get_image_credentials(image_uuid)
 
     def _upload_raw_files(self, files, bucket, prefix, credentials):
         progress = ProgressPercentage()

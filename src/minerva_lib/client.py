@@ -1,3 +1,5 @@
+import re
+
 import boto3
 import logging
 import requests
@@ -86,7 +88,24 @@ class MinervaClient:
         return self.request('GET', '/import/' + import_uuid + '/credentials')
 
     def get_image_credentials(self, image_uuid):
-        return self.request('GET', '/image/' + image_uuid + '/credentials')
+        res = self.request('GET', '/image/' + image_uuid + '/credentials')
+
+        m = re.match(r"^s3://([A-z0-9\-]+)/([A-z0-9\-]+)/$", res["data"]["image_url"])
+        bucket = m.group(1)
+        prefix = m.group(2)
+        credentials = res["data"]["credentials"]
+        return credentials, bucket, prefix
+
+    def get_raw_tile(self, credentials, bucket, uuid, x, y, z, t, c, level, format=".png"):
+        s3 = boto3.client("s3", aws_access_key_id=credentials["AccessKeyId"],
+                          aws_secret_access_key=credentials["SecretAccessKey"],
+                          aws_session_token=credentials["SessionToken"],
+                          region_name=self.region)
+
+        key = f'{uuid}/C{c}-T{t}-Z{z}-L{level}-Y{y}-X{x}{format}'
+        obj = s3.get_object(Bucket=bucket, Key=key)
+        body = obj['Body']
+        return body.read()
 
     def mark_import_complete(self, import_uuid):
         body = {
