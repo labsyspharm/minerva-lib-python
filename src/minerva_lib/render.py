@@ -38,7 +38,7 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     return out
 
-def composite_channels(channels):
+def composite_channels(channels, gamma=None):
     '''Render each image in _channels_ additively into a composited image
 
     Args:
@@ -50,6 +50,7 @@ def composite_channels(channels):
                 min: Threshhold range minimum, float within 0, 1
                 max: Threshhold range maximum, float within 0, 1
             }
+        gamma: Gamma correction value, default 1/2.2 (1 = no gamma)
 
     Returns:
         For input images with shape `(n,m)`,
@@ -83,7 +84,14 @@ def composite_channels(channels):
 
     # Return gamma correct image within 0, 1
     np.clip(out_buffer, 0, 1, out=out_buffer)
-    return ski.adjust_gamma(out_buffer, 1 / 2.2)
+    if gamma is None:
+        # Default gamma value if no parameter is given
+        gamma = 1 / 2.2
+
+    if gamma != 1:
+        ski.adjust_gamma(out_buffer, 1 / 2.2)
+
+    return out_buffer
 
 
 def scale_image_nearest_neighbor(source, factors):
