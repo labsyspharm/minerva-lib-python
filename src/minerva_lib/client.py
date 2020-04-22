@@ -27,7 +27,7 @@ class MinervaClient:
     def authenticate(self, username, password):
         try:
             logging.info("Logging in as %s", username)
-            config = botocore.config.Config(signature_version=botocore.UNSIGNED)
+            config = botocore.config.Config(signature_version=botocore.UNSIGNED, region_name=self.region)
             client = boto3.client('cognito-idp', config=config)
             response = client.initiate_auth(
                 AuthFlow='USER_PASSWORD_AUTH',
