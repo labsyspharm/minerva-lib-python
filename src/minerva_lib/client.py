@@ -4,6 +4,7 @@ import boto3
 import logging
 import requests
 import json
+import botocore
 
 
 class InvalidUsernameOrPassword(Exception):
@@ -26,7 +27,8 @@ class MinervaClient:
     def authenticate(self, username, password):
         try:
             logging.info("Logging in as %s", username)
-            client = boto3.client('cognito-idp')
+            config = botocore.config.Config(signature_version=botocore.UNSIGNED)
+            client = boto3.client('cognito-idp', config=config)
             response = client.initiate_auth(
                 AuthFlow='USER_PASSWORD_AUTH',
                 AuthParameters={
