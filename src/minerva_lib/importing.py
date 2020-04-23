@@ -134,6 +134,9 @@ class MinervaImporter:
 
     def _upload_raw_files(self, files, bucket, prefix, credentials):
         progress = ProgressPercentage()
+        for file in files:
+            progress._total_size += os.path.getsize(file)
+
         with ThreadPoolExecutor() as executor:
             for file in files:
                 key = prefix + FileUtils.get_key(file)
@@ -143,13 +146,18 @@ class MinervaImporter:
 
     def poll_import_progress(self, import_uuid):
         all_complete = False
-        timeout = 1800  # 30 mins
+        timeout = 1800  # 30 mins (initial timeout for EFS syncing)
+        extract_timeout = 1800  # 30 mins (extend timeout when bfextraction starts)
+        timeout_extended = False
         start = time.time()
         logging.info("Please wait while filesets are created...")
         while not all_complete:
             result = self.minerva_client.list_filesets_in_import(import_uuid)
             filesets = result["data"]
             if len(filesets) > 0:
+                if not timeout_extended:
+                    timeout_extended = True
+                    timeout = timeout + extract_timeout
                 all_complete = True
                 progresses = []
                 for fileset in filesets:
@@ -163,7 +171,9 @@ class MinervaImporter:
                 time_spent = time.time() - start
                 if time_spent > timeout:
                     logging.warning("Waiting for import timed out!")
-                    logging.warning("Fileset progress can be checked with command: minerva status")
+                    logging.warning("This does not necessarily mean that import failed, it could just take longer than expected.")
+                    logging.warning("To check fileset progress, run command:")
+                    logging.warning("minerva status")
                     all_complete = True
 
                 time.sleep(2)

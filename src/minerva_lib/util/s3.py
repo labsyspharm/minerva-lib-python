@@ -8,9 +8,6 @@ class S3Uploader:
 
     def upload_file(self, filepath, bucket, object_name, credentials, callback: ProgressPercentage=None):
         try:
-            if callback is not None:
-                callback.add(filepath)
-
             logging.info("Uploading file %s", filepath)
             s3 = boto3.client("s3", aws_access_key_id=credentials["AccessKeyId"],
                               aws_secret_access_key=credentials["SecretAccessKey"],
