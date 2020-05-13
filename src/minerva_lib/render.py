@@ -28,10 +28,11 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     if out is None:
         out = target.copy()
 
+    length = target.shape[0]*target.shape[1]
     image_p = image.ctypes.data_as(c_uint16_p)
-    crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), 1024)
+    crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), length)
     out_p = out.ctypes.data_as(c_uint32_p)
-    crender.composite16(out_p, image_p, color[0], color[1], color[2], 1024)
+    crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
 
     # Rescale the new channel to a float32 between 0 and 1
     #f32_range = (range_min, range_max)
@@ -90,8 +91,8 @@ def composite_channels(channels, gamma=None):
 
     # Return gamma correct image within 0, 1
     out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
-    pointer = crender.clip32_conv8(out_buffer_p, 0, 65535, 3, 1024)
-    out8 = np.ctypeslib.as_array(pointer, shape=(1024,1024,3))
+    pointer = crender.clip32_conv8(out_buffer_p, 0, 65535, 3, shape[0]*shape[1])
+    out8 = np.ctypeslib.as_array(pointer, shape=shape_color)
 
     if gamma is None:
         # Default gamma value if no parameter is given

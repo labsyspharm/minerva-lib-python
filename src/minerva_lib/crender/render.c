@@ -6,16 +6,16 @@
 #include <string.h>
 #include <math.h>
 
-#define TILE_SIZE 1024
+#define TILE_SIZE 1024 // FIX PARTIAL TILE CRASHES!
 
-void clip(float* target, float min, float max, int channels, int tileSize);
-void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int tileSize);
-uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int tileSize);
-void rescale_intensity(float* target, float imin, float imax, int tileSize);
-void rescale_intensity16(uint16_t* target, int imin, int imax, int tileSize);
-float* image_as_float(uint16_t* target, int tileSize);
-void composite(float *target, float* image, float red, float green, float blue, int tileSize);
-void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int tileSize);
+void clip(float* target, float min, float max, int channels, int len);
+void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int len);
+uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int len);
+void rescale_intensity(float* target, float imin, float imax, int len);
+void rescale_intensity16(uint16_t* target, int imin, int imax, int len);
+float* image_as_float(uint16_t* target, int len);
+void composite(float *target, float* image, float red, float green, float blue, int len);
+void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int len);
 
 void print_arr(float *arr, int rows) {
     int i, row;
@@ -39,38 +39,38 @@ void print_uarr(uint16_t *arr, int rows) {
     printf("\n");
 }
 
-void composite(float *target, float* image, float red, float green, float blue, int tileSize) {
+void composite(float *target, float* image, float red, float green, float blue, int len) {
     int x;
-    for (x=0; x<tileSize*tileSize; x++) {
+    for (x=0; x<len; x++) {
         target[x*3] += (image[x] * red); 
         target[x*3+1] += (image[x] * green); 
         target[x*3+2] += (image[x] * blue);
     }
 }
 
-void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int tileSize) {
+void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int len) {
     int x;
-    for (x=0; x<tileSize*tileSize; x++) {
+    for (x=0; x<len; x++) {
         target[x*3] += image[x] * red;
         target[x*3+1] += image[x] * green;
         target[x*3+2] += image[x] * blue;
     }
 }
 
-float* image_as_float(uint16_t* target, int tileSize) {
-    float *out = (float *)malloc(tileSize * tileSize * sizeof(float));
-    for (int x=0; x<tileSize*tileSize; x++) {
+float* image_as_float(uint16_t* target, int len) {
+    float *out = (float *)malloc(len * sizeof(float));
+    for (int x=0; x<len; x++) {
         out[x] = target[x] / 65535.0f;
     }
     return out;
 }
 
-void rescale_intensity(float* target, float imin, float imax, int tileSize) {
-    clip(target, imin, imax, 1, tileSize);
+void rescale_intensity(float* target, float imin, float imax, int len) {
+    clip(target, imin, imax, 1, len);
 
     float factor = 1.0f / (imax - imin);
 
-    for (int x=0; x<tileSize*tileSize; x++) {
+    for (int x=0; x<len; x++) {
         target[x] -= imin;
         target[x] *= factor;
     }
@@ -86,34 +86,34 @@ void rescale_intensity(float* target, float imin, float imax, int tileSize) {
     image *= factor
     image += omin
 */
-void rescale_intensity16(uint16_t* target, int imin, int imax, int tileSize) {
-    clip16(target, imin, imax, 1, tileSize);
+void rescale_intensity16(uint16_t* target, int imin, int imax, int len) {
+    clip16(target, imin, imax, 1, len);
 
     float factor = 65535.0f / (imax - imin);
 
-    for (int x=0; x<tileSize*tileSize; x++) {
+    for (int x=0; x<len; x++) {
         target[x] -= imin;
         target[x] = (uint16_t)(factor*target[x]);
     }
 }
 
-void clip(float* target, float min, float max, int channels, int tileSize) {
-    for (int x=0; x<tileSize*tileSize*channels; x++) {
+void clip(float* target, float min, float max, int channels, int len) {
+    for (int x=0; x<len*channels; x++) {
         const float t = target[x] < min ? min : target[x];
         target[x] = t > max ? max : t;
     }
 }
 
-void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int tileSize) {
-    for (int x=0; x<tileSize*tileSize*channels; x++) {
+void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int len) {
+    for (int x=0; x<len*channels; x++) {
         const uint16_t t = target[x] < min ? min : target[x];
         target[x] = t > max ? max : t;
     }
 }
 
-uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int tileSize) {
-    uint8_t* res = (uint8_t*)malloc(tileSize * tileSize * channels * sizeof(uint8_t));
-    for (int x=0; x<tileSize*tileSize*channels; x++) {
+uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int len) {
+    uint8_t* res = (uint8_t*)malloc(len * channels * sizeof(uint8_t));
+    for (int x=0; x<len*channels; x++) {
         uint32_t t = target[x] < min ? min : target[x];
         t = t > max ? max : t;
         res[x] = (uint8_t)(t / 256);
@@ -142,14 +142,14 @@ void test_render() {
     print_uarr(intArr, 3);
     print_uarr(intArr2, 3);
 
-    float* floatArr = image_as_float(intArr, TILE_SIZE);
-    float* floatArr2 = image_as_float(intArr2, TILE_SIZE);
+    float* floatArr = image_as_float(intArr, size);
+    float* floatArr2 = image_as_float(intArr2, size);
     printf("After converting to float\n");
     print_arr(floatArr, 3);
     print_arr(floatArr2, 3);
 
-    rescale_intensity(floatArr, 0.1f, 0.9f, TILE_SIZE);
-    rescale_intensity(floatArr2, 0.1f, 0.9f, TILE_SIZE);
+    rescale_intensity(floatArr, 0.1f, 0.9f, size);
+    rescale_intensity(floatArr2, 0.1f, 0.9f, size);
     printf("After rescaling intensity\n");
     print_arr(floatArr, 3);
     print_arr(floatArr2, 3);
@@ -193,8 +193,8 @@ void test_render16() {
     print_uarr(intArr, 3);
     print_uarr(intArr2, 3);
 
-    rescale_intensity16(intArr, 2000, 62000, TILE_SIZE);
-    rescale_intensity16(intArr2, 12000, 28000, TILE_SIZE);
+    rescale_intensity16(intArr, 2000, 62000, size);
+    rescale_intensity16(intArr2, 12000, 28000, size);
     printf("After rescaling intensity\n");
     print_uarr(intArr, 3);
     print_uarr(intArr2, 3);
@@ -232,8 +232,8 @@ void test_composite() {
 
     clock_t start = clock() / (CLOCKS_PER_SEC / 1000);
     for (int i=0; i<1000; i++) {
-        composite(target, arr1, 0.1, 0.2, 0.3, 1024);
-        composite(target, arr2, 0.1, 0.2, 0.3, 1024);
+        composite(target, arr1, 0.1, 0.2, 0.3, size);
+        composite(target, arr2, 0.1, 0.2, 0.3, size);
     }
     
 
@@ -251,7 +251,7 @@ void test_to_float() {
 
     clock_t start = clock() / (CLOCKS_PER_SEC / 1000);
 
-    image_as_float(intArr, 8192);
+    image_as_float(intArr, size);
 
     clock_t end = clock() / (CLOCKS_PER_SEC / 1000);
     clock_t t = end - start;
@@ -268,7 +268,7 @@ void test_clip() {
     clock_t start = clock() / (CLOCKS_PER_SEC / 1000);
 
     for (int i=0; i<100; i++) {
-        clip(arr1, 0.0f, 1.0f, 1, 8192);
+        clip(arr1, 0.0f, 1.0f, 1, size);
     }
 
     clock_t end = clock() / (CLOCKS_PER_SEC / 1000);

@@ -23,7 +23,7 @@ c_uint16_p = ctypes.POINTER(ctypes.c_uint16)
 c_uint32_p = ctypes.POINTER(ctypes.c_uint32)
 
 # load the library, using numpy mechanisms
-crender = npct.load_library("crender", ".")
+crender = npct.load_library("crender", os.path.dirname(__file__))
 
 # setup the return types and argument types
 crender.rescale_intensity.restype = None
