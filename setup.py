@@ -10,8 +10,8 @@ with open(os.path.join(HERE, 'README.md')) as f:
     README = f.read()
 
 REQUIRES = [
-    'numpy>=1.11.1',
-    'boto3==1.11.12',
+    'numpy>=1.18',
+    'boto3>=1.12.39',
     'requests==2.22.0'
 ]
 
