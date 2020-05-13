@@ -7,7 +7,6 @@
 #include <math.h>
 
 #define TILE_SIZE 1024
-//#define AVX
 
 void clip(float* target, float min, float max, int channels, int tileSize);
 void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int tileSize);
@@ -17,32 +16,6 @@ void rescale_intensity16(uint16_t* target, int imin, int imax, int tileSize);
 float* image_as_float(uint16_t* target, int tileSize);
 void composite(float *target, float* image, float red, float green, float blue, int tileSize);
 void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int tileSize);
-
-void print256_num(__m256 var)
-{
-    float val[8];
-    memcpy(val, &var, sizeof(val));
-    printf("Numerical: %f %f %f %f %f %f %f %f \n", 
-           val[0], val[1], val[2], val[3], val[4], val[5], 
-           val[6], val[7]);
-}
-
-void print256i_num(__m256i var)
-{
-    int val[8];
-    memcpy(val, &var, sizeof(val));
-    printf("Numerical: %d %d %d %d %d %d %d %d \n", 
-           val[0], val[1], val[2], val[3], val[4], val[5], 
-           val[6], val[7]);
-}
-
-void print128i_num(__m128i var)
-{
-    int val[4];
-    memcpy(val, &var, sizeof(val));
-    printf("Numerical: %d %d %d %d \n", 
-           val[0], val[1], val[2], val[3]);
-}
 
 void print_arr(float *arr, int rows) {
     int i, row;
@@ -66,26 +39,6 @@ void print_uarr(uint16_t *arr, int rows) {
     printf("\n");
 }
 
-#ifdef AVX
-void composite(float *target, float* image, float red, float green, float blue, int tileSize) {
-    int x;
-
-    __m128 i0;
-    __m128 c0 = _mm_set_ps(0.0f, blue, green, red);
-    __m128 res;
-    for (x=0; x<tileSize*tileSize; x+=1) {
-
-        i0 = _mm_broadcast_ss(image+x);
-        res = _mm_mul_ps(i0, c0);
-        __m128 orig = _mm_load_ps(target+(x*3));
-        __m128 comp = _mm_add_ps(res, orig);
-
-        _mm_storeu_ps(target+(x*3), comp);
-    }
-}
-#endif
-
-#ifndef AVX
 void composite(float *target, float* image, float red, float green, float blue, int tileSize) {
     int x;
     for (x=0; x<tileSize*tileSize; x++) {
@@ -94,7 +47,6 @@ void composite(float *target, float* image, float red, float green, float blue, 
         target[x*3+2] += (image[x] * blue);
     }
 }
-#endif
 
 void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int tileSize) {
     int x;
@@ -105,31 +57,6 @@ void composite16(uint32_t *target, uint16_t* image, float red, float green, floa
     }
 }
 
-#ifdef AVX
-float* image_as_float(uint16_t* target, int tileSize) {
-    float *out = (float *)aligned_alloc(32, tileSize * tileSize * sizeof(float));
-    float f = 1 / 65535.0f;
-    __m256i ints;
-    __m256 floats;
-    __m256 res;
-    __m256 maxValue = _mm256_broadcast_ss( &f );
-    int x, i;
-
-    for (x=0; x<tileSize*tileSize; x+=8) {
-        __m128i short_vec = _mm_loadu_si128((__m128i*)(target+x));
-        __m256i int_vec =  _mm256_cvtepu16_epi32 (short_vec); // AVX2
-        __m256  singleComplete = _mm256_cvtepi32_ps (int_vec);
-        // Finally do the math
-        __m256 scaledVect = _mm256_mul_ps(singleComplete, maxValue);
-        // and puts the result where needed.
-        _mm256_store_ps(out+x, scaledVect);
-    }
-    
-    return out;
-}
-#endif
-
-#ifndef AVX
 float* image_as_float(uint16_t* target, int tileSize) {
     float *out = (float *)malloc(tileSize * tileSize * sizeof(float));
     for (int x=0; x<tileSize*tileSize; x++) {
@@ -137,28 +64,7 @@ float* image_as_float(uint16_t* target, int tileSize) {
     }
     return out;
 }
-#endif
 
-#ifdef AVX
-void rescale_intensity(float* target, float imin, float imax, int tileSize) {
-    clip(target, imin, imax, 1, tileSize);
-
-    __m256 pixels;
-    float factor = 1.0f / (imax - imin);
-    __m256 sseFactor = _mm256_broadcast_ss( &factor );
-    __m256 sseMin = _mm256_broadcast_ss( &imin );
-
-    for (int x=0; x<tileSize*tileSize; x+=8) {
-        pixels = _mm256_load_ps(target+x);
-        pixels = _mm256_sub_ps(pixels, sseMin);
-        pixels = _mm256_mul_ps(pixels, sseFactor);
-
-        _mm256_store_ps( target+x, pixels );
-    }
-}
-#endif
-
-#ifndef AVX
 void rescale_intensity(float* target, float imin, float imax, int tileSize) {
     clip(target, imin, imax, 1, tileSize);
 
@@ -169,7 +75,6 @@ void rescale_intensity(float* target, float imin, float imax, int tileSize) {
         target[x] *= factor;
     }
 }
-#endif
 /*
     imin, imax = intensity_range(image, in_range)
     omin, omax = intensity_range(image, out_range, clip_negative=(imin >= 0))
@@ -192,35 +97,12 @@ void rescale_intensity16(uint16_t* target, int imin, int imax, int tileSize) {
     }
 }
 
-#ifdef AVX
-void clip(float* target, float min, float max, int channels, int tileSize) {
-    __m256 pixels, clipped;
-    __m256 sseFloats;
-    int x, y, i;
-    __m256 sseMin = _mm256_broadcast_ss( &min );
-    __m256 sseMax = _mm256_broadcast_ss( &max );
-
-    for (x=0; x<tileSize*tileSize*channels; x+=8) {
-        // load pixel values into register
-        pixels = _mm256_load_ps(target+x);
-        // clip between min and max
-        sseFloats = _mm256_max_ps( pixels, sseMin );
-        clipped = _mm256_min_ps( sseFloats, sseMax );
-
-        // copy values from registers to array
-        _mm256_store_ps( target+x, clipped );
-    }
-}
-#endif
-
-#ifndef AVX
 void clip(float* target, float min, float max, int channels, int tileSize) {
     for (int x=0; x<tileSize*tileSize*channels; x++) {
         const float t = target[x] < min ? min : target[x];
         target[x] = t > max ? max : t;
     }
 }
-#endif
 
 void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int tileSize) {
     for (int x=0; x<tileSize*tileSize*channels; x++) {

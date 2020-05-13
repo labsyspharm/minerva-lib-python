@@ -19,7 +19,7 @@ TEST_REQUIRES = [
     'pytest'
 ]
 
-COMPILE_ARGS = ["-fPIC", "-mmmx", "-msse", "-msse2", "-msse3", "-mssse3", "-msse4", "-mavx", "-mavx2", "-O3"]
+COMPILE_ARGS = ["-std=c99", "-fPIC", "-mmmx", "-msse", "-msse2", "-msse3", "-mssse3", "-msse4", "-mavx", "-mavx2", "-O3"]
 
 VERSION = versioneer.get_version()
 DESCRIPTION = 'minerva lib'
