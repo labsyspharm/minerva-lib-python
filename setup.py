@@ -1,7 +1,7 @@
 """ Minerva Python Library
 """
 import os
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
 import versioneer
 
 
@@ -19,12 +19,21 @@ TEST_REQUIRES = [
     'pytest'
 ]
 
+COMPILE_ARGS = ["-fPIC", "-mmmx", "-msse", "-msse2", "-msse3", "-mssse3", "-msse4", "-mavx", "-mavx2", "-O3"]
+
 VERSION = versioneer.get_version()
 DESCRIPTION = 'minerva lib'
-AUTHOR = 'D.P.W. Russell'
-EMAIL = 'douglas_russell@hms.harvard.edu'
+AUTHOR = 'D.P.W. Russell, Juha Ruokonen'
+EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
 LICENSE = 'GPL-3.0'
 HOMEPAGE = 'https://github.com/sorgerlab/minerva-lib-python'
+
+crender = Extension('crender',
+                    define_macros = [('MAJOR_VERSION', '1'),
+                                     ('MINOR_VERSION', '0')],
+                    include_dirs = ['/usr/local/include'],
+                    extra_compile_args=COMPILE_ARGS,
+                    sources = ['src/minerva_lib/crender/render.c'])
 
 setup(
     name='minerva-lib',
@@ -55,4 +64,5 @@ setup(
     download_url=f'{HOMEPAGE}/archive/v{VERSION}.tar.gz',
     keywords=['minerva', 'library', 'microscopy'],
     zip_safe=False,
+    ext_modules=[crender]
 )

@@ -2,7 +2,8 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-
+from .crender.wrapper import crender, c_float_p, c_uint16_p, c_uint32_p
+import sys
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
     ''' Render _image_ in pseudocolor and composite into _target_
@@ -27,14 +28,19 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     if out is None:
         out = target.copy()
 
+    image_p = image.ctypes.data_as(c_uint16_p)
+    crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), 1024)
+    out_p = out.ctypes.data_as(c_uint32_p)
+    crender.composite16(out_p, image_p, color[0], color[1], color[2], 1024)
+
     # Rescale the new channel to a float32 between 0 and 1
-    f32_range = (range_min, range_max)
-    f32_image = ski.img_as_float(image, dtype=np.float32)
-    f32_image = ski.rescale_intensity(f32_image, f32_range)
+    #f32_range = (range_min, range_max)
+    #f32_image = ski.img_as_float(image, dtype=np.float32)
+    #f32_image = ski.rescale_intensity(f32_image, f32_range)
 
     # Colorize and add the new channel to composite image
-    for i, component in enumerate(color):
-        out[:, :, i] += f32_image * component
+    #for i, component in enumerate(color):
+    #    out[:, :, i] += f32_image * component
 
     return out
 
@@ -74,7 +80,7 @@ def composite_channels(channels, gamma=None):
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    out_buffer = np.zeros(shape_color, dtype=np.float32)
+    out_buffer = np.zeros(shape_color, dtype=np.uint32)
 
     # rescaled images and normalized colors
     for channel in channels:
@@ -83,15 +89,18 @@ def composite_channels(channels, gamma=None):
         composite_channel(out_buffer, *args, out=out_buffer)
 
     # Return gamma correct image within 0, 1
-    np.clip(out_buffer, 0, 1, out=out_buffer)
+    out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
+    pointer = crender.clip32_conv8(out_buffer_p, 0, 65535, 3, 1024)
+    out8 = np.ctypeslib.as_array(pointer, shape=(1024,1024,3))
+
     if gamma is None:
         # Default gamma value if no parameter is given
         gamma = 1 / 2.2
 
     if gamma != 1:
-        ski.adjust_gamma(out_buffer, 1 / 2.2)
+        ski.adjust_gamma(out8, gamma)
 
-    return out_buffer
+    return out8
 
 
 def scale_image_nearest_neighbor(source, factors):
