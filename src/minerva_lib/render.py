@@ -2,7 +2,7 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-from .crender.wrapper import crender, c_float_p, c_uint16_p, c_uint32_p
+from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p
 import sys
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
@@ -89,11 +89,12 @@ def composite_channels(channels, gamma=None):
         args = map(channel.get, ['image', 'color', 'min', 'max'])
         composite_channel(out_buffer, *args, out=out_buffer)
 
-    # Return gamma correct image within 0, 1
+    out8 = np.empty(shape_color, dtype=np.uint8)
     out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
-    pointer = crender.clip32_conv8(out_buffer_p, 0, 65535, 3, shape[0]*shape[1])
-    out8 = np.ctypeslib.as_array(pointer, shape=shape_color)
+    out8_p = out8.ctypes.data_as(c_uint8_p)
+    crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, 3, shape[0]*shape[1])
 
+    # Return gamma correct image within 0, 1
     if gamma is None:
         # Default gamma value if no parameter is given
         gamma = 1 / 2.2

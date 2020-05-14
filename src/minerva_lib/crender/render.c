@@ -10,7 +10,7 @@
 
 void clip(float* target, float min, float max, int channels, int len);
 void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int len);
-uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int len);
+void clip32_conv8(uint32_t* target, uint8_t* output, uint16_t min, uint16_t max, int channels, int len);
 void rescale_intensity(float* target, float imin, float imax, int len);
 void rescale_intensity16(uint16_t* target, int imin, int imax, int len);
 float* image_as_float(uint16_t* target, int len);
@@ -111,14 +111,12 @@ void clip16(uint16_t* target, uint16_t min, uint16_t max, int channels, int len)
     }
 }
 
-uint8_t* clip32_conv8(uint32_t* target, uint16_t min, uint16_t max, int channels, int len) {
-    uint8_t* res = (uint8_t*)malloc(len * channels * sizeof(uint8_t));
+void clip32_conv8(uint32_t* target, uint8_t* output, uint16_t min, uint16_t max, int channels, int len) {
     for (int x=0; x<len*channels; x++) {
         uint32_t t = target[x] < min ? min : target[x];
         t = t > max ? max : t;
-        res[x] = (uint8_t)(t / 256);
+        output[x] = (uint8_t)(t / 256);
     }
-    return res;
 }
 
 void test_render() {
