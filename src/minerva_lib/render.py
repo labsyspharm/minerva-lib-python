@@ -2,9 +2,10 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p
+from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, aligned_zeros, empty_aligned
 import sys
 
+@profile
 def composite_channel(target, image, color, range_min, range_max, out=None):
     ''' Render _image_ in pseudocolor and composite into _target_
 
@@ -30,8 +31,9 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     length = target.shape[0]*target.shape[1]
     image_p = image.ctypes.data_as(c_uint16_p)
+    out_p = out.ctypes.data_as(c_uint16_p)
+
     crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), length)
-    out_p = out.ctypes.data_as(c_uint32_p)
     crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
 
     # Rescale the new channel to a float32 between 0 and 1
@@ -45,6 +47,7 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     return out
 
+@profile
 def composite_channels(channels, gamma=None):
     '''Render each image in _channels_ additively into a composited image
 
@@ -81,7 +84,10 @@ def composite_channels(channels, gamma=None):
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    out_buffer = np.zeros(shape_color, dtype=np.uint32)
+    out_buffer = np.zeros(shape_color, dtype=np.uint16)
+    out_buffer = np.frombuffer(empty_aligned(np.prod(shape_color)*2, align=32), dtype=np.uint16)
+    out_buffer = np.reshape(out_buffer, shape_color)
+    #out_buffer = aligned_zeros(shape_color, boundary=32, dtype=np.uint16)
 
     # rescaled images and normalized colors
     for channel in channels:
@@ -89,10 +95,15 @@ def composite_channels(channels, gamma=None):
         args = map(channel.get, ['image', 'color', 'min', 'max'])
         composite_channel(out_buffer, *args, out=out_buffer)
 
+    # Create final 8-bit RGB array 
     out8 = np.empty(shape_color, dtype=np.uint8)
-    out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
+    #out8 = aligned_zeros(shape_color, boundary=32, dtype=np.uint8)
+
+    out_buffer_p = out_buffer.ctypes.data_as(c_uint16_p)
     out8_p = out8.ctypes.data_as(c_uint8_p)
-    crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, 3, shape[0]*shape[1])
+
+    crender.conv8(out_buffer_p, out8_p, 3, shape[0]*shape[1])
+    #crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, 3, shape[0]*shape[1])
 
     # Return gamma correct image within 0, 1
     if gamma is None:

@@ -16,12 +16,17 @@ void composite(float *target, float* image, float red, float green, float blue, 
     }
 }
 
-void composite16(uint32_t *target, uint16_t* image, float red, float green, float blue, int len) {
+void composite16(uint16_t *target, uint16_t* image, float red, float green, float blue, int len) {
     int x;
     for (x=0; x<len; x++) {
-        target[x*3] += image[x] * red;
-        target[x*3+1] += image[x] * green;
-        target[x*3+2] += image[x] * blue;
+        const uint32_t r = target[x*3] + image[x] * red;
+        target[x*3] = r > 65535 ? 65535 : r;
+
+        const uint32_t g = target[x*3+1] + image[x] * green;
+        target[x*3+1] = g > 65535 ? 65535 : g;
+
+        const uint32_t b = target[x*3+2] + image[x] * blue;
+        target[x*3+2] = b > 65535 ? 65535 : b;
     }
 }
 
@@ -80,5 +85,11 @@ void clip32_conv8(uint32_t* target, uint8_t* output, uint16_t min, uint16_t max,
     for (int x=0; x<len*channels; x++) {
         const uint32_t t = target[x] < min ? min : target[x];
         output[x] = (uint8_t)((t > max ? max : t) / 256);
+    }
+}
+
+void conv8(uint16_t* target, uint8_t* output, int channels, int len) {
+    for (int x=0; x<len*channels; x++) {
+        output[x] = (uint8_t)(target[x] / 256);
     }
 }
