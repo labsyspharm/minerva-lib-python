@@ -5,7 +5,6 @@ from . import skimage_inline as ski
 from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, aligned_zeros, empty_aligned
 import sys
 
-@profile
 def composite_channel(target, image, color, range_min, range_max, out=None):
     ''' Render _image_ in pseudocolor and composite into _target_
 
@@ -47,7 +46,6 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
 
     return out
 
-@profile
 def composite_channels(channels, gamma=None):
     '''Render each image in _channels_ additively into a composited image
 
