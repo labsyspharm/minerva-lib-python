@@ -20,13 +20,13 @@ void composite16(uint16_t *target, uint16_t* image, float red, float green, floa
     int x;
     for (x=0; x<len; x++) {
         const uint32_t r = target[x*3] + image[x] * red;
-        target[x*3] = r > 65535 ? 65535 : r;
+        target[x*3] = r > UINT16_MAX ? UINT16_MAX : r;
 
         const uint32_t g = target[x*3+1] + image[x] * green;
-        target[x*3+1] = g > 65535 ? 65535 : g;
+        target[x*3+1] = g > UINT16_MAX ? UINT16_MAX : g;
 
         const uint32_t b = target[x*3+2] + image[x] * blue;
-        target[x*3+2] = b > 65535 ? 65535 : b;
+        target[x*3+2] = b > UINT16_MAX ? UINT16_MAX : b;
     }
 }
 

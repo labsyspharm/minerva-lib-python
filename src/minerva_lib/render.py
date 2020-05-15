@@ -82,7 +82,6 @@ def composite_channels(channels, gamma=None):
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    out_buffer = np.zeros(shape_color, dtype=np.uint16)
     out_buffer = np.frombuffer(empty_aligned(np.prod(shape_color)*2, align=32), dtype=np.uint16)
     out_buffer = np.reshape(out_buffer, shape_color)
     #out_buffer = aligned_zeros(shape_color, boundary=32, dtype=np.uint16)
@@ -94,8 +93,11 @@ def composite_channels(channels, gamma=None):
         composite_channel(out_buffer, *args, out=out_buffer)
 
     # Create final 8-bit RGB array 
-    out8 = np.empty(shape_color, dtype=np.uint8)
+    #out8 = np.empty(shape_color, dtype=np.uint8)
     #out8 = aligned_zeros(shape_color, boundary=32, dtype=np.uint8)
+
+    out8 = np.frombuffer(empty_aligned(np.prod(shape_color), align=32), dtype=np.uint8)
+    out8 = np.reshape(out8, shape_color)
 
     out_buffer_p = out_buffer.ctypes.data_as(c_uint16_p)
     out8_p = out8.ctypes.data_as(c_uint8_p)
