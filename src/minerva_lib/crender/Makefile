@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fPIC -O3 -mmmx -msse -msse2 -msse3 -mssse3 -msse4 -msse4.1 -mavx -ffast-math -funsafe-math-optimizations -fno-math-errno
+CFLAGS=-fPIC -O3 -march=haswell -ffast-math -funsafe-math-optimizations -fno-math-errno
 
 all: render crender.so test_render
 
@@ -9,9 +9,12 @@ crender.so : render.o
 render:
 	$(CC) $(CFLAGS) render.c -c
 
-test_render:
+test_render: test_render.c
 	$(CC) $(CFLAGS) -o test_render render.c test_render.c
 
 clean:
-	rm -f *.o *.so
+	rm -f *.o *.so test_render
+
+test: test_render
+	./test_render
 

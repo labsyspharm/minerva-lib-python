@@ -2,7 +2,7 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p
+from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, aligned_zeros
 import sys
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
@@ -33,15 +33,6 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), length)
     out_p = out.ctypes.data_as(c_uint32_p)
     crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
-
-    # Rescale the new channel to a float32 between 0 and 1
-    #f32_range = (range_min, range_max)
-    #f32_image = ski.img_as_float(image, dtype=np.float32)
-    #f32_image = ski.rescale_intensity(f32_image, f32_range)
-
-    # Colorize and add the new channel to composite image
-    #for i, component in enumerate(color):
-    #    out[:, :, i] += f32_image * component
 
     return out
 
@@ -92,7 +83,7 @@ def composite_channels(channels, gamma=None):
     out8 = np.empty(shape_color, dtype=np.uint8)
     out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
     out8_p = out8.ctypes.data_as(c_uint8_p)
-    crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, 3, shape[0]*shape[1])
+    crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, shape[0]*shape[1]*3)
 
     # Return gamma correct image within 0, 1
     if gamma is None:

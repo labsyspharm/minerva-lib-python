@@ -27,22 +27,13 @@ c_uint32_p = ctypes.POINTER(ctypes.c_uint32)
 crender = npct.load_library("crender", ".")
 
 # setup the return types and argument types
-crender.rescale_intensity.restype = None
-crender.rescale_intensity.argtypes = [c_float_p, c_float, c_float, c_int]
 crender.rescale_intensity16.restype = None
-crender.rescale_intensity16.argtypes = [c_uint16_p, c_int, c_int, c_int]
+crender.rescale_intensity16.argtypes = [c_uint16_p, c_uint16, c_uint16, c_int]
 
-crender.clip.restype = None
-crender.clip.argtypes = [c_float_p, c_float, c_float, c_int, c_int]
 crender.clip16.restype = None
-crender.clip16.argtypes = [c_uint16_p, c_uint16, c_uint16, c_int, c_int]
+crender.clip16.argtypes = [c_uint16_p, c_uint16, c_uint16, c_int]
 crender.clip32_conv8.restype = None
-crender.clip32_conv8.argtypes = [c_uint32_p, c_uint8_p, c_uint16, c_uint16, c_int, c_int]
+crender.clip32_conv8.argtypes = [c_uint32_p, c_uint8_p, c_uint16, c_uint16, c_int]
 
-crender.image_as_float.restype = c_float_p
-crender.image_as_float.argtypes = [c_uint16_p, c_int]
-
-crender.composite.restype = None
-crender.composite.argtypes = [c_float_p, c_float_p, c_float, c_float, c_float, c_int]
 crender.composite16.restype = None
 crender.composite16.argtypes = [c_uint32_p, c_uint16_p, c_float, c_float, c_float, c_int]
