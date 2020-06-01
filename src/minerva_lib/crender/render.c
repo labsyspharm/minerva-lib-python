@@ -1,8 +1,7 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <math.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "render.h"
 
 /**
@@ -48,4 +47,8 @@ void clip32_conv8(uint32_t* target, uint8_t* output, const uint16_t min, const u
         output[x] = (uint8_t)(t / 256);
     }
 }
+
+#ifdef __cplusplus
+}
+#endif
 

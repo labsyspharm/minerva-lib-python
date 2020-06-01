@@ -2,8 +2,12 @@
 """
 import os
 from setuptools import setup, find_packages, Extension
+from distutils.command.build_ext import build_ext
 import versioneer
 
+OS_WIN = False
+if os.name == 'nt':
+    OS_WIN = True
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(HERE, 'README.md')) as f:
@@ -19,7 +23,33 @@ TEST_REQUIRES = [
     'pytest'
 ]
 
-COMPILE_ARGS = ["-std=c99", "-fPIC", "-mmmx", "-msse", "-msse2", "-msse3", "-mssse3", "-msse4", "-mavx", "-mavx2", "-O3"]
+# Hack to build "pure CTypes" shared library with setuptools.
+#
+# https://stackoverflow.com/questions/4529555/building-a-ctypes-based-c-library-with-distutils
+class build_ext(build_ext):
+
+    def build_extension(self, ext):
+        self._ctypes = isinstance(ext, CTypes)
+        return super().build_extension(ext)
+
+    def get_export_symbols(self, ext):
+        if self._ctypes:
+            return ext.export_symbols
+        return super().get_export_symbols(ext)
+
+    def get_ext_filename(self, ext_name):
+        if self._ctypes:
+            lib_extension = '.so' if not OS_WIN else '.dll'
+            return ext_name + lib_extension
+        return super().get_ext_filename(ext_name)
+
+class CTypes(Extension): pass
+
+
+GCC_COMPILE_ARGS = ["-std=c99", "-fPIC", "-O3", "-march=haswell", "-ffast-math", "-funsafe-math-optimizations", "-fno-math-errno"]
+MSVC_COMPILE_ARGS = ["/O2", "/arch:AVX2"]
+
+COMPILE_ARGS = GCC_COMPILE_ARGS if not OS_WIN else MSVC_COMPILE_ARGS
 
 VERSION = versioneer.get_version()
 DESCRIPTION = 'minerva lib'
@@ -28,7 +58,7 @@ EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
 LICENSE = 'GPL-3.0'
 HOMEPAGE = 'https://github.com/sorgerlab/minerva-lib-python'
 
-crender = Extension('crender',
+crender = CTypes('crender',
                     define_macros = [('MAJOR_VERSION', '1'),
                                      ('MINOR_VERSION', '0')],
                     include_dirs = ['/usr/local/include'],
@@ -38,7 +68,7 @@ crender = Extension('crender',
 setup(
     name='minerva-lib',
     version=VERSION,
-    cmdclass=versioneer.get_cmdclass(),
+    cmdclass={'build_ext': build_ext},
     package_dir={'': 'src'},
     description=DESCRIPTION,
     long_description=README,
