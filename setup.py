@@ -5,9 +5,7 @@ from setuptools import setup, find_packages, Extension
 from distutils.command.build_ext import build_ext
 import versioneer
 
-OS_WIN = False
-if os.name == 'nt':
-    OS_WIN = True
+OS_WIN = True if os.name == 'nt' else False
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(HERE, 'README.md')) as f:
