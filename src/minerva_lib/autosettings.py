@@ -41,7 +41,7 @@ def get_random_tiles(width, height, level=1, tile_size=1024, count=4):
 def calc_min_max(data, threshold, num_bins=100, abs_max=65535):
     h, bins = np.histogram(data.flatten(), bins=num_bins)
     max_val = None
-    min_val = bins[1]
+    min_val = bins[2]
     max_limit = threshold * data.size
 
     for i, sum in reversed(list(enumerate(h))):
