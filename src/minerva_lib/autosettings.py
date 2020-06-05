@@ -42,9 +42,10 @@ def calc_min_max(data, threshold, num_bins=100, abs_max=65535):
     h, bins = np.histogram(data.flatten(), bins=num_bins)
     max_val = None
     min_val = bins[1]
+    max_limit = threshold * data.size
 
     for i, sum in reversed(list(enumerate(h))):
-        if max_val is None and sum > threshold:
+        if max_val is None and sum > max_limit:
             max_val = bins[i]
 
     if max_val is None:
