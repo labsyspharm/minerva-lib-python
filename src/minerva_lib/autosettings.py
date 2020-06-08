@@ -1,7 +1,9 @@
+import math
+
 import numpy as np
 import random
 
-def get_random_tiles(width, height, level=1, tile_size=1024, count=4):
+def get_random_tiles(width, height, level=1, tile_size=1024, count=5):
     tiles = []
     tiles_x = (width // tile_size) + 1
     tiles_y = (height // tile_size) + 1
@@ -25,11 +27,18 @@ def get_random_tiles(width, height, level=1, tile_size=1024, count=4):
     y_high = tiles_y - 2 if tiles_y >= 4 else tiles_y - 1
 
     available = []
+    center_x = tiles_x // 2
+    center_y = tiles_y // 2
+    tiles.append((center_x, center_y))
+
     for x in range(x_low, x_high+1):
         for y in range(y_low, y_high+1):
-            available.append((x, y))
+            if x != center_x and y != center_y:
+                available.append((x, y))
 
-    for i in range(count):
+    print("Available: ", len(available))
+
+    for i in range(count-1):
         if len(available) == 0:
             break
         i = random.randint(0, len(available)-1)
@@ -38,19 +47,59 @@ def get_random_tiles(width, height, level=1, tile_size=1024, count=4):
 
     return tiles
 
-def calc_min_max(data, threshold, num_bins=100, abs_max=65535):
-    h, bins = np.histogram(data.flatten(), bins=num_bins)
-    max_val = None
-    min_val = bins[2]
-    max_limit = threshold * data.size
+def _smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
 
-    for i, sum in reversed(list(enumerate(h))):
-        if max_val is None and sum > max_limit:
+def _local_minimas(arr, window=5):
+    minimas = []
+    for i in range(len(arr)-window):
+        is_minima = True
+        for l in range(i, i+window//2):
+            if arr[l] <= arr[l+1]:
+                is_minima = False
+
+        for r in range(i+1+(window//2), i+window):
+            if arr[r] <= arr[r-1]:
+                is_minima = False
+
+        if is_minima:
+            minimas.append(i)
+
+    return minimas
+
+def calc_min_max(data, threshold, num_bins=200, abs_max=65535):
+    d = data.flatten()
+    h, bins = np.histogram(d, bins=num_bins, range=(0, abs_max))
+    h = _smooth(h, 10)
+    minimas = _local_minimas(h, window=5)
+    max_val = abs_max
+    max_limit = threshold * d.size
+
+    max_bin = np.amax(h)
+    max_bin_idx = np.where(h == max_bin)
+
+    min_bin_idx = max_bin_idx[0][0] + 1
+
+    if len(minimas) > 0:
+        if minimas[0] > max_limit:
+            min_bin_idx = minimas[0]
+
+    min_val = bins[min_bin_idx]
+
+    for i in range(min_bin_idx+1, num_bins):
+        bin_size = h[i]
+        if max_val == abs_max and bin_size < max_limit:
             max_val = bins[i]
+            break
 
-    if max_val is None:
-        max_val = abs_max
+    if max_val <= min_val:
+        if min_bin_idx + 3 < num_bins:
+            max_val = bins[min_bin_idx + 3]
+        else:
+            max_val = abs_max
 
-    min_val = round(min_val)
     max_val = round(max_val)
-    return min_val / abs_max, max_val / abs_max
+    min_val = round(min_val)
+    return min_val / abs_max, max_val / abs_max, h, bins
