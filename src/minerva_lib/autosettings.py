@@ -1,7 +1,6 @@
-import math
-
 import numpy as np
 import random
+#import sklearn.mixture
 
 def get_random_tiles(width, height, level=1, tile_size=1024, count=5):
     tiles = []
@@ -69,37 +68,41 @@ def _local_minimas(arr, window=5):
 
     return minimas
 
-def calc_min_max(data, threshold, num_bins=200, abs_max=65535):
-    d = data.flatten()
-    h, bins = np.histogram(d, bins=num_bins, range=(0, abs_max))
-    h = _smooth(h, 10)
+def calc_histogram(data, num_bins=255, range_max=65535):
+    hist, bins = np.histogram(data.flatten(), bins=num_bins, range=(0, range_max))
+    return hist, bins
+
+def calc_min_max(histogram, bins, threshold, range_max=65535, smooth=10):
+    h = _smooth(histogram, smooth)
     minimas = _local_minimas(h, window=5)
-    max_val = abs_max
-    max_limit = threshold * d.size
+    max_val = range_max
+    max_limit = threshold * sum(histogram)
 
-    max_bin = np.amax(h)
-    max_bin_idx = np.where(h == max_bin)
+    largest_bin = np.amax(h)
+    largest_bin_idx = np.where(h == largest_bin)
 
-    min_bin_idx = max_bin_idx[0][0] + 1
+    min_val_idx = largest_bin_idx[0][0] + 1
 
     if len(minimas) > 0:
         if minimas[0] > max_limit:
-            min_bin_idx = minimas[0]
+            min_val_idx = minimas[0]
 
-    min_val = bins[min_bin_idx]
+    min_val = bins[min_val_idx]
 
-    for i in range(min_bin_idx+1, num_bins):
+    for i in range(min_val_idx+1, len(bins)-1):
         bin_size = h[i]
-        if max_val == abs_max and bin_size < max_limit:
+        if max_val == range_max and bin_size < max_limit:
             max_val = bins[i]
             break
 
-    if max_val <= min_val:
-        if min_bin_idx + 3 < num_bins:
-            max_val = bins[min_bin_idx + 3]
-        else:
-            max_val = abs_max
-
     max_val = round(max_val)
     min_val = round(min_val)
-    return min_val / abs_max, max_val / abs_max, h, bins
+    return min_val / range_max, max_val / range_max, h, bins
+
+# def gaussian(data, n=2):
+#     gmm = sklearn.mixture.GaussianMixture(n_components=n, covariance_type='spherical')
+#     gmm.fit(data.reshape(-1, 1))
+#
+#     dev = gmm.means_ + [-1, 1] * gmm.covariances_.reshape(-1, 1)**0.5*2
+#     print(dev)
+
