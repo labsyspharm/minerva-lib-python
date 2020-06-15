@@ -14,7 +14,8 @@ with open(os.path.join(HERE, 'README.md')) as f:
 REQUIRES = [
     'numpy>=1.18',
     'boto3>=1.12.39',
-    'requests==2.22.0'
+    'requests==2.22.0',
+    'scikit-learn'
 ]
 
 TEST_REQUIRES = [
