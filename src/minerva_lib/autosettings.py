@@ -1,14 +1,15 @@
 import numpy as np
 import random
-#import sklearn.mixture
+import sklearn.mixture
+import math
 
 def get_random_tiles(width, height, level=1, tile_size=1024, count=5):
     tiles = []
     tiles_x = (width // tile_size) + 1
     tiles_y = (height // tile_size) + 1
     for i in range(level):
-        tiles_x = tiles_x // 2
-        tiles_y = tiles_y // 2
+        tiles_x = math.ceil(tiles_x / 2)
+        tiles_y = math.ceil(tiles_y / 2)
 
     # Generate random tile coordinates from the image center,
     # ignoring the edge tiles, which have higher probability of
@@ -32,10 +33,8 @@ def get_random_tiles(width, height, level=1, tile_size=1024, count=5):
 
     for x in range(x_low, x_high+1):
         for y in range(y_low, y_high+1):
-            if x != center_x and y != center_y:
+            if x != center_x or y != center_y:
                 available.append((x, y))
-
-    print("Available: ", len(available))
 
     for i in range(count-1):
         if len(available) == 0:
@@ -99,10 +98,31 @@ def calc_min_max(histogram, bins, threshold, range_max=65535, smooth=10):
     min_val = round(min_val)
     return min_val / range_max, max_val / range_max, h, bins
 
-# def gaussian(data, n=2):
-#     gmm = sklearn.mixture.GaussianMixture(n_components=n, covariance_type='spherical')
-#     gmm.fit(data.reshape(-1, 1))
-#
-#     dev = gmm.means_ + [-1, 1] * gmm.covariances_.reshape(-1, 1)**0.5*2
-#     print(dev)
+def gaussian(data, n_components=3, n_sigmas=2, subsampling=1):
+    gmm = sklearn.mixture.GaussianMixture(n_components=n_components, covariance_type='spherical')
+    d = data.reshape(-1, 1)
+    subsampled = d[::subsampling]
+    subsampled[subsampled == 0] = 1
+    subsampled = np.log(subsampled)
+
+    gmm.fit(subsampled)
+
+    min_max = gmm.means_ + [-1, 1] * gmm.covariances_.reshape(-1, 1)**0.5*n_sigmas
+    i = np.argmax(min_max)
+    min_max = min_max.flatten()
+
+    if n_components > 2:
+        min_value = np.median(gmm.means_)
+    else:
+        min_value = np.amin(gmm.means_)
+
+    max_value = min_max[i]
+
+    min_value = math.exp(min_value)
+    max_value = math.exp(max_value)
+
+    min_value = max(0, min_value)
+    max_value = min(65535, max_value)
+
+    return min_value / 65535, max_value / 65535, [], []
 
