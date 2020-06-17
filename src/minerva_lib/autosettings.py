@@ -98,7 +98,7 @@ def calc_min_max(histogram, bins, threshold, range_max=65535, smooth=10):
     min_val = round(min_val)
     return min_val / range_max, max_val / range_max, h, bins
 
-def gaussian(data, n_components=3, n_sigmas=2, subsampling=1):
+def gaussian(data, n_components=3, n_sigmas=2, subsampling=1, range_max=65535):
     gmm = sklearn.mixture.GaussianMixture(n_components=n_components, covariance_type='spherical')
     d = data.reshape(-1, 1)
     subsampled = d[::subsampling]
@@ -111,18 +111,14 @@ def gaussian(data, n_components=3, n_sigmas=2, subsampling=1):
     i = np.argmax(min_max)
     min_max = min_max.flatten()
 
-    if n_components > 2:
-        min_value = np.median(gmm.means_)
-    else:
-        min_value = np.amin(gmm.means_)
-
+    min_value = min_max[i-1]
     max_value = min_max[i]
 
     min_value = math.exp(min_value)
     max_value = math.exp(max_value)
 
     min_value = max(0, min_value)
-    max_value = min(65535, max_value)
+    max_value = min(range_max, max_value)
 
-    return min_value / 65535, max_value / 65535, [], []
+    return min_value / range_max, max_value / range_max, [], []
 
