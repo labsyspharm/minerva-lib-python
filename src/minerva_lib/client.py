@@ -1,10 +1,13 @@
+import base64
 import re
+from io import BytesIO
 
 import boto3
 import logging
 import requests
 import json
 import botocore
+import tifffile
 
 
 class InvalidUsernameOrPassword(Exception):
@@ -23,6 +26,7 @@ class MinervaClient:
         self.token_type = None
         self.refresh_token = None
         self.session = None
+        self.credentials_cache = {}
 
     def authenticate(self, username, password):
         try:
@@ -47,7 +51,7 @@ class MinervaClient:
             logging.error(e)
             raise InvalidCognitoClientId
 
-    def request(self, method, path, body=None, parameters=None):
+    def request(self, method, path, body=None, parameters=None, json=True):
         if self.session is None:
             self.session = requests.Session()
 
@@ -67,7 +71,10 @@ class MinervaClient:
 
         response.raise_for_status()
         logging.debug(response)
-        return response.json()
+        if json:
+            return response.json()
+        else:
+            return response.text
 
     def list_repositories(self):
         return self.request('GET', '/repository')
@@ -96,9 +103,20 @@ class MinervaClient:
         bucket = m.group(1)
         prefix = m.group(2)
         credentials = res["data"]["credentials"]
+        self.credentials_cache[image_uuid] = {
+            "credentials": credentials,
+            "bucket": bucket,
+            "prefix": prefix
+        }
         return credentials, bucket, prefix
 
-    def get_raw_tile(self, credentials, bucket, uuid, x, y, z, t, c, level, format=".png"):
+    def get_raw_tile(self, uuid, x, y, z, t, c, level, format=".tif"):
+        if uuid not in self.credentials_cache:
+            self.get_image_credentials(uuid)
+
+        credentials = self.credentials_cache[uuid]["credentials"]
+        bucket = self.credentials_cache[uuid]["bucket"]
+
         s3 = boto3.client("s3", aws_access_key_id=credentials["AccessKeyId"],
                           aws_secret_access_key=credentials["SecretAccessKey"],
                           aws_session_token=credentials["SessionToken"],
@@ -107,7 +125,15 @@ class MinervaClient:
         key = f'{uuid}/C{c}-T{t}-Z{z}-L{level}-Y{y}-X{x}{format}'
         obj = s3.get_object(Bucket=bucket, Key=key)
         body = obj['Body']
-        return body.read()
+        data = body.read()
+        stream = BytesIO(data)
+        return tifffile.imread(stream)
+
+    def get_image_metadata(self, image_uuid):
+        return base64.b64decode(self.request('GET', '/image/' + image_uuid + '/metadata', json=False))
+
+    def get_image(self, image_uuid):
+        return self.request('GET', '/image/' + image_uuid)
 
     def mark_import_complete(self, import_uuid):
         body = {
@@ -137,5 +163,3 @@ class MinervaClient:
             "repository_uuid": repository_uuid
         }
         return self.request('POST', '/image', body)
-
-

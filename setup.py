@@ -15,7 +15,8 @@ REQUIRES = [
     'numpy>=1.18',
     'boto3>=1.12.39',
     'requests==2.22.0',
-    'scikit-learn'
+    'scikit-learn',
+    'tifffile>=2020.7.22'
 ]
 
 TEST_REQUIRES = [
