@@ -51,7 +51,7 @@ class MinervaClient:
             logging.error(e)
             raise InvalidCognitoClientId
 
-    def request(self, method, path, body=None, parameters=None, json=True):
+    def request(self, method, path, body=None, parameters=None, json_response=True):
         if self.session is None:
             self.session = requests.Session()
 
@@ -71,7 +71,7 @@ class MinervaClient:
 
         response.raise_for_status()
         logging.debug(response)
-        if json:
+        if json_response:
             return response.json()
         else:
             return response.text
@@ -130,7 +130,7 @@ class MinervaClient:
         return tifffile.imread(stream)
 
     def get_image_metadata(self, image_uuid):
-        return base64.b64decode(self.request('GET', '/image/' + image_uuid + '/metadata', json=False))
+        return base64.b64decode(self.request('GET', '/image/' + image_uuid + '/metadata', json_response=False))
 
     def get_image(self, image_uuid):
         return self.request('GET', '/image/' + image_uuid)
