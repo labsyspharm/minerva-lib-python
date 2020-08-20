@@ -21,6 +21,18 @@ void composite16(uint32_t *target, uint16_t* image, const float red, const float
     }
 }
 
+void composite32(uint64_t *target, uint32_t* image, const float red, const float green, const float blue, const int len) {
+    int x;
+    const uint64_t r = red * 4294967295.0;
+    const uint64_t g = green * 4294967295.0;
+    const uint64_t b = blue * 4294967295.0;
+    for (x=0; x<len; x++) {
+        target[x*3] += image[x] * r / 4294967295.0;
+        target[x*3+1] += image[x] * g / 4294967295.0;
+        target[x*3+2] += image[x] * b / 4294967295.0;
+    }
+}
+
 void rescale_intensity16(uint16_t* target, const uint16_t imin, const uint16_t imax, const int len) {
     clip16(target, imin, imax, len);
 
@@ -32,6 +44,17 @@ void rescale_intensity16(uint16_t* target, const uint16_t imin, const uint16_t i
     }
 }
 
+void rescale_intensity32(uint32_t* target, const uint32_t imin, const uint32_t imax, const int len) {
+    clip32(target, imin, imax, len);
+
+    const double factor = 4294967295.0 / (imax - imin);
+    int x;
+    for (x=0; x<len; x++) {
+        target[x] -= imin;
+        target[x] = (uint32_t)(factor*target[x]);
+    }
+}
+
 void clip16(uint16_t* target, const uint16_t min, const uint16_t max, const int len) {
     int x;
     for (x=0; x<len; x++) {
@@ -40,11 +63,27 @@ void clip16(uint16_t* target, const uint16_t min, const uint16_t max, const int 
     }
 }
 
-void clip32_conv8(uint32_t* target, uint8_t* output, const uint16_t min, const uint16_t max, const int len) {
+void clip32(uint32_t* target, const uint32_t min, const uint32_t max, const int len) {
     int x;
     for (x=0; x<len; x++) {
-        const uint32_t t = target[x] > max ? max : target[x];
+        const uint32_t t = target[x] < min ? min : target[x];
+        target[x] = t > max ? max : t;
+    }
+}
+
+void clip32_conv8(uint32_t* target, uint8_t* output, const int len) {
+    int x;
+    for (x=0; x<len; x++) {
+        const uint32_t t = target[x] > 65535 ? 65535 : target[x];
         output[x] = (uint8_t)(t / 256);
+    }
+}
+
+void clip32_conv8_32(uint64_t* target, uint8_t* output, const int len) {
+    int x;
+    for (x=0; x<len; x++) {
+        const uint64_t t = target[x] > 4294967295 ? 4294967295 : target[x];
+        output[x] = (uint8_t)(t / 16777216);
     }
 }
 

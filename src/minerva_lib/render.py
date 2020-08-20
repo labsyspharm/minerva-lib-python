@@ -2,7 +2,7 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, aligned_zeros
+from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, c_uint64_p, aligned_zeros
 import sys
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
@@ -28,11 +28,19 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     if out is None:
         out = target.copy()
 
-    length = target.shape[0]*target.shape[1]
-    image_p = image.ctypes.data_as(c_uint16_p)
-    crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), length)
-    out_p = out.ctypes.data_as(c_uint32_p)
-    crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
+    length = target.shape[0] * target.shape[1]
+
+    if image.dtype == 'uint32':
+        image_p = image.ctypes.data_as(c_uint32_p)
+        crender.rescale_intensity32(image_p, int(range_min*(2**32)), int(range_max*(2**32)), length)
+        out_p = out.ctypes.data_as(c_uint64_p)
+        crender.composite32(out_p, image_p, color[0], color[1], color[2], length)
+
+    elif image.dtype == 'uint16':
+        image_p = image.ctypes.data_as(c_uint16_p)
+        crender.rescale_intensity16(image_p, int(range_min*65535), int(range_max*65535), length)
+        out_p = out.ctypes.data_as(c_uint32_p)
+        crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
 
     return out
 
@@ -68,22 +76,34 @@ def composite_channels(channels, gamma=None):
         if channel['image'].shape != shape:
             raise ValueError('All channel images must have equal dimensions')
 
+    source_dtype = channels[0]['image'].dtype
     # Shape of 3 color image
     shape_color = shape + (3,)
 
     # Final buffer for blending
-    out_buffer = np.zeros(shape_color, dtype=np.uint32)
+    if source_dtype == 'uint16':
+        out_buffer = np.zeros(shape_color, dtype=np.uint32)
+    elif source_dtype == 'uint32':
+        out_buffer = np.zeros(shape_color, dtype=np.uint64)
 
     # rescaled images and normalized colors
     for channel in channels:
         # Add all three channels to output buffer
+        print("source image max: ", np.max(channel.get('image')))
         args = map(channel.get, ['image', 'color', 'min', 'max'])
         composite_channel(out_buffer, *args, out=out_buffer)
 
     out8 = np.empty(shape_color, dtype=np.uint8)
-    out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
     out8_p = out8.ctypes.data_as(c_uint8_p)
-    crender.clip32_conv8(out_buffer_p, out8_p, 0, 65535, shape[0]*shape[1]*3)
+
+    print("out_buffer max: ", np.max(out_buffer))
+
+    if source_dtype == 'uint16':
+        out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
+        crender.clip32_conv8(out_buffer_p, out8_p, shape[0]*shape[1]*3)
+    elif source_dtype == 'uint32':
+        out_buffer_p = out_buffer.ctypes.data_as(c_uint64_p)
+        crender.clip32_conv8_32(out_buffer_p, out8_p, shape[0]*shape[1]*3)
 
     # Return gamma correct image within 0, 1
     if gamma is None:
