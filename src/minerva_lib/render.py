@@ -89,14 +89,11 @@ def composite_channels(channels, gamma=None):
     # rescaled images and normalized colors
     for channel in channels:
         # Add all three channels to output buffer
-        print("source image max: ", np.max(channel.get('image')))
         args = map(channel.get, ['image', 'color', 'min', 'max'])
         composite_channel(out_buffer, *args, out=out_buffer)
 
     out8 = np.empty(shape_color, dtype=np.uint8)
     out8_p = out8.ctypes.data_as(c_uint8_p)
-
-    print("out_buffer max: ", np.max(out_buffer))
 
     if source_dtype == 'uint16':
         out_buffer_p = out_buffer.ctypes.data_as(c_uint32_p)
