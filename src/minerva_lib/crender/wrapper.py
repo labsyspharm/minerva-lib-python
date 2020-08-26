@@ -3,7 +3,12 @@ import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
 from ctypes import c_float, c_int, c_uint16, c_uint32
-import importlib_resources
+import sys
+if sys.version_info[0] >= 4 or (sys.version_info[0] >= 3 and sys.version_info[1] >= 7):
+    import importlib.resources as resources
+else:
+    import importlib_resources as resources
+
 from pathlib import Path
 
 def aligned_zeros(shape, boundary=16, dtype=float, order='C'):
@@ -23,7 +28,7 @@ c_uint32_p = ctypes.POINTER(ctypes.c_uint32)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
 
 # load the library, using numpy mechanisms
-with importlib_resources.path("minerva_lib", "crender") as libpath:
+with resources.path("minerva_lib", "crender") as libpath:
     path = Path(str(libpath)).parent.parent
     crender = npct.load_library("crender", str(path))
 
