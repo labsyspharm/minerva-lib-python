@@ -2,8 +2,7 @@ import itertools
 import collections.abc
 import numpy as np
 from . import skimage_inline as ski
-from .crender.wrapper import crender, c_float_p, c_uint8_p, c_uint16_p, c_uint32_p, c_uint64_p, aligned_zeros
-import sys
+from .crender.wrapper import crender, c_uint8_p, c_uint16_p, c_uint32_p, c_uint64_p
 
 def composite_channel(target, image, color, range_min, range_max, out=None):
     ''' Render _image_ in pseudocolor and composite into _target_
@@ -15,6 +14,8 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
     Args:
         target: Numpy array containing composition target image
         image: Numpy array of image to render and composite
+            !! numpy views are NOT handled correctly by the native rendering code
+            !! If you want to use a view, make a copy first
         color: Color as r, g, b float array within 0, 1
         range_min: Threshhold range minimum, float within 0, 1
         range_max: Threshhold range maximum, float within 0, 1
@@ -52,6 +53,8 @@ def composite_channels(channels, gamma=None):
             list must have the following rendering settings:
             {
                 image: Numpy 2D image data of any type
+                    !! numpy views are NOT handled correctly by the native rendering code
+                    !! If you want to use a view, make a copy first
                 color: Color as r, g, b float array within 0, 1
                 min: Threshhold range minimum, float within 0, 1
                 max: Threshhold range maximum, float within 0, 1
@@ -60,8 +63,8 @@ def composite_channels(channels, gamma=None):
 
     Returns:
         For input images with shape `(n,m)`,
-        returns a float32 RGB color image with shape
-        `(n,m,3)` and values in the range 0 to 1
+        returns a uint8 RGB color image with shape
+        `(n,m,3)` and values in the range 0 to 255
     '''
 
     num_channels = len(channels)
@@ -75,6 +78,8 @@ def composite_channels(channels, gamma=None):
     for channel in channels:
         if channel['image'].shape != shape:
             raise ValueError('All channel images must have equal dimensions')
+        if not channel['image'].flags['OWNDATA']:
+            print("WARNING: Image is possibly a numpy view, views are not rendered correctly!")
 
     source_dtype = channels[0]['image'].dtype
     # Shape of 3 color image
