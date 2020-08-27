@@ -2,8 +2,13 @@ import os
 import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
-from ctypes import c_float, c_int, c_uint16
-from importlib import resources
+from ctypes import c_float, c_int, c_uint16, c_uint32
+import sys
+if sys.version_info[0] >= 4 or (sys.version_info[0] >= 3 and sys.version_info[1] >= 7):
+    import importlib.resources as resources
+else:
+    import importlib_resources as resources
+
 from pathlib import Path
 
 def aligned_zeros(shape, boundary=16, dtype=float, order='C'):
