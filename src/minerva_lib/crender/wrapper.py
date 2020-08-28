@@ -2,8 +2,9 @@ import os
 import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
-from ctypes import c_float, c_int, c_uint16, c_uint32
+from ctypes import CDLL, c_float, c_int, c_uint16, c_uint32
 import sys
+import platform
 if sys.version_info[0] >= 4 or (sys.version_info[0] >= 3 and sys.version_info[1] >= 7):
     import importlib.resources as resources
 else:
@@ -28,9 +29,16 @@ c_uint32_p = ctypes.POINTER(ctypes.c_uint32)
 c_uint64_p = ctypes.POINTER(ctypes.c_uint64)
 
 # load the library, using numpy mechanisms
-with resources.path("minerva_lib", "crender") as libpath:
-    path = Path(str(libpath)).parent.parent
-    crender = npct.load_library("crender", str(path))
+try:
+    with resources.path('minerva_lib', 'crender') as libpath:
+        path = Path(str(libpath)).parent.parent
+        crender = npct.load_library("crender", str(path))
+except Exception:
+    # for PyInstaller
+    if platform.uname()[0] == "Windows":
+        crender = CDLL("crender.dll")
+    else:
+        crender = CDLL("crender.so")
 
 # setup the return types and argument types
 crender.rescale_intensity16.restype = None
