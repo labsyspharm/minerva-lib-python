@@ -25,7 +25,6 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
         A numpy array with the same shape as the composited image.
         If an output array is specified, a reference to _out_ is returned.
     '''
-
     if out is None:
         out = target.copy()
 
@@ -43,6 +42,11 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
         out_p = out.ctypes.data_as(c_uint32_p)
         crender.composite16(out_p, image_p, color[0], color[1], color[2], length)
 
+    elif image.dtype == 'uint8':
+        image_p = image.ctypes.data_as(c_uint8_p)
+        crender.rescale_intensity8(image_p, int(range_min*255), int(range_max*255), length)
+        out_p = out.ctypes.data_as(c_uint16_p)
+        crender.composite8(out_p, image_p, color[0], color[1], color[2], length)
     return out
 
 def composite_channels(channels, gamma=None):
@@ -90,6 +94,8 @@ def composite_channels(channels, gamma=None):
         out_buffer = np.zeros(shape_color, dtype=np.uint32)
     elif source_dtype == 'uint32':
         out_buffer = np.zeros(shape_color, dtype=np.uint64)
+    elif source_dtype == 'uint8':
+        out_buffer = np.zeros(shape_color, dtype=np.uint16)
 
     # rescaled images and normalized colors
     for channel in channels:
@@ -105,7 +111,10 @@ def composite_channels(channels, gamma=None):
         crender.clip32_conv8(out_buffer_p, out8_p, shape[0]*shape[1]*3)
     elif source_dtype == 'uint32':
         out_buffer_p = out_buffer.ctypes.data_as(c_uint64_p)
-        crender.clip32_conv8_32(out_buffer_p, out8_p, shape[0]*shape[1]*3)
+        crender.clip64_conv8(out_buffer_p, out8_p, shape[0]*shape[1]*3)
+    elif source_dtype == 'uint8':
+        out_buffer_p = out_buffer.ctypes.data_as(c_uint16_p)
+        crender.clip16_conv8(out_buffer_p, out8_p, shape[0]*shape[1]*3)
 
     # Return gamma correct image within 0, 1
     if gamma is None:

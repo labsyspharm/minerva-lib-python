@@ -2,7 +2,7 @@ import os
 import numpy as np
 import numpy.ctypeslib as npct
 import ctypes
-from ctypes import CDLL, c_float, c_int, c_uint16, c_uint32
+from ctypes import CDLL, c_float, c_int, c_uint8, c_uint16, c_uint32
 import sys
 import platform
 if sys.version_info[0] >= 4 or (sys.version_info[0] >= 3 and sys.version_info[1] >= 7):
@@ -41,20 +41,28 @@ except Exception:
         crender = CDLL("crender.so")
 
 # setup the return types and argument types
+crender.rescale_intensity8.restype = None
+crender.rescale_intensity8.argtypes = [c_uint8_p, c_uint8, c_uint8, c_int]
 crender.rescale_intensity16.restype = None
 crender.rescale_intensity16.argtypes = [c_uint16_p, c_uint16, c_uint16, c_int]
 crender.rescale_intensity32.restype = None
 crender.rescale_intensity32.argtypes = [c_uint32_p, c_uint32, c_uint32, c_int]
 
+crender.clip8.restype = None
+crender.clip8.argtypes = [c_uint8_p, c_uint8, c_uint8, c_int]
 crender.clip16.restype = None
 crender.clip16.argtypes = [c_uint16_p, c_uint16, c_uint16, c_int]
 crender.clip32.restype = None
 crender.clip32.argtypes = [c_uint32_p, c_uint32, c_uint32, c_int]
 crender.clip32_conv8.restype = None
 crender.clip32_conv8.argtypes = [c_uint32_p, c_uint8_p, c_int]
-crender.clip32_conv8_32.restype = None
-crender.clip32_conv8_32.argtypes = [c_uint64_p, c_uint8_p, c_int]
+crender.clip64_conv8.restype = None
+crender.clip64_conv8.argtypes = [c_uint64_p, c_uint8_p, c_int]
+crender.clip16_conv8.restype = None
+crender.clip16_conv8.argtypes = [c_uint16_p, c_uint8_p, c_int]
 
+crender.composite8.restype = None
+crender.composite8.argtypes = [c_uint16_p, c_uint8_p, c_float, c_float, c_float, c_int]
 crender.composite16.restype = None
 crender.composite16.argtypes = [c_uint32_p, c_uint16_p, c_float, c_float, c_float, c_int]
 crender.composite32.restype = None
