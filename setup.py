@@ -51,7 +51,7 @@ MSVC_COMPILE_ARGS = ["/O2", "/arch:AVX2"]
 
 COMPILE_ARGS = GCC_COMPILE_ARGS if not OS_WIN else MSVC_COMPILE_ARGS
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 DESCRIPTION = 'Minerva Python library'
 AUTHOR = 'D.P.W. Russell, Juha Ruokonen'
 EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
@@ -61,7 +61,7 @@ HOMEPAGE = 'https://github.com/sorgerlab/minerva-lib-python'
 crender = CTypes('crender',
                     define_macros = [('MAJOR_VERSION', '1'),
                                      ('MINOR_VERSION', '0')],
-                    include_dirs = ['/usr/local/include'],
+                    include_dirs = ['/usr/local/include', 'src/minerva_lib/crender'],
                     extra_compile_args=COMPILE_ARGS,
                     sources = ['src/minerva_lib/crender/render.c'])
 
