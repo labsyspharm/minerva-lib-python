@@ -3,7 +3,6 @@
 import os
 from setuptools import setup, find_packages, Extension
 from distutils.command.build_ext import build_ext
-import versioneer
 
 OS_WIN = True if os.name == 'nt' else False
 
@@ -52,8 +51,8 @@ MSVC_COMPILE_ARGS = ["/O2", "/arch:AVX2"]
 
 COMPILE_ARGS = GCC_COMPILE_ARGS if not OS_WIN else MSVC_COMPILE_ARGS
 
-VERSION = versioneer.get_version()
-DESCRIPTION = 'minerva lib'
+VERSION = "0.0.1"
+DESCRIPTION = 'Minerva Python library'
 AUTHOR = 'D.P.W. Russell, Juha Ruokonen'
 EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
 LICENSE = 'GPL-3.0'
@@ -73,6 +72,7 @@ setup(
     package_dir={'': 'src'},
     description=DESCRIPTION,
     long_description=README,
+    long_description_content_type="text/markdown",
     packages=find_packages('src'),
     include_package_data=True,
     install_requires=REQUIRES,
