@@ -15,7 +15,7 @@ REQUIRES = [
     'boto3>=1.12.39',
     'requests==2.22.0',
     'scikit-learn',
-    'tifffile>=2020.10.1',
+    'tifffile>=2020.9.3',
     'importlib-resources'
 ]
 
