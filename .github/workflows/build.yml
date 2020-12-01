@@ -6,6 +6,9 @@ on:
     tags:
       - '*'
 
+env:
+  CIBW_SKIP: 'cp27-* cp39-* pp*'
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
