@@ -7,7 +7,7 @@ on:
       - '*'
 
 env:
-  CIBW_SKIP: 'cp27-* cp39-* pp*'
+  CIBW_SKIP: 'cp27-* cp35-* cp39-* pp*'
 
 jobs:
   build_wheels:
