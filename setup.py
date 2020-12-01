@@ -55,7 +55,7 @@ VERSION = "0.0.3"
 DESCRIPTION = 'Minerva Python library'
 AUTHOR = 'D.P.W. Russell, Juha Ruokonen'
 EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
-LICENSE = 'GPL-3.0'
+LICENSE = 'MIT'
 HOMEPAGE = 'https://github.com/sorgerlab/minerva-lib-python'
 
 crender = CTypes('crender',
@@ -82,7 +82,7 @@ setup(
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
@@ -95,5 +95,6 @@ setup(
     download_url=f'{HOMEPAGE}/archive/v{VERSION}.tar.gz',
     keywords=['minerva', 'library', 'microscopy'],
     zip_safe=False,
-    ext_modules=[crender]
+    ext_modules=[crender],
+    python_requires='>=3.6',
 )
