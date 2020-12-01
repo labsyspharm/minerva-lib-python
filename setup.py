@@ -51,7 +51,7 @@ MSVC_COMPILE_ARGS = ["/O2", "/arch:AVX2"]
 
 COMPILE_ARGS = GCC_COMPILE_ARGS if not OS_WIN else MSVC_COMPILE_ARGS
 
-VERSION = "0.0.2"
+VERSION = "0.0.3"
 DESCRIPTION = 'Minerva Python library'
 AUTHOR = 'D.P.W. Russell, Juha Ruokonen'
 EMAIL = 'douglas_russell@hms.harvard.edu, juha_ruokonen@hms.harvard.edu'
