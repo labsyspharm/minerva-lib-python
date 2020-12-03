@@ -156,10 +156,13 @@ class MinervaClient:
     def cognito_details(self):
         return self.request('GET', '/cognito_details')
 
-    def create_image(self, name, repository_uuid, pyramid_levels=1):
+    def create_image(self, name, repository_uuid, format, compression=None, pyramid_levels=1, tile_size=1024):
         body = {
             "name": name,
             "pyramid_levels": pyramid_levels,
-            "repository_uuid": repository_uuid
+            "repository_uuid": repository_uuid,
+            "tile_size": tile_size,
+            "format": format,
+            "compression": compression
         }
         return self.request('POST', '/image', body)

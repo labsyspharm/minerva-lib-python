@@ -16,7 +16,8 @@ REQUIRES = [
     'requests==2.22.0',
     'scikit-learn',
     'tifffile>=2020.9.3',
-    'importlib-resources'
+    'importlib-resources',
+    's3transfer'
 ]
 
 TEST_REQUIRES = [

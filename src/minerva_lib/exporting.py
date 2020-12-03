@@ -10,8 +10,9 @@ from requests.exceptions import HTTPError
 
 SOFTWARE_TAG_CODE = 305
 
+logger = logging.getLogger("minerva")
 
-def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: str, save_pyramid=False):
+def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: str, save_pyramid=False, progress_callback=lambda a,b : None):
     start = time()
     image, ome_metadata = _get_image_and_metadata(minerva_client, image_uuid)
     if image is None:
@@ -23,6 +24,12 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
         if output_path.endswith(".ome"):
             output_path += ".tif"
 
+    tiles_processed = 0
+    total_tiles = 0
+
+    def done_callback(f):
+        progress_callback(tiles_processed, total_tiles)
+
     with tifffile.TiffWriter(output_path, bigtiff=True) as tif:
         num_channels = len(image["data"]["pixels"]["channels"])
         pyramid_levels = image["included"]["images"][0]["pyramid_levels"] if save_pyramid else 1
@@ -30,17 +37,19 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
         width = image["data"]["pixels"]["SizeX"]
         height = image["data"]["pixels"]["SizeY"]
         for level in range(pyramid_levels):
-            logging.info("Pyramid level %s/%s", level, pyramid_levels-1)
+            logger.debug("Pyramid level %s/%s", level, pyramid_levels-1)
             tiles_width = math.ceil(width / tile_size)
             tiles_height = math.ceil(height / tile_size)
+            total_tiles += (tiles_width*tiles_height*num_channels)
 
             for channel in range(num_channels):
-                logging.info("Fetch channel %s/%s", channel, num_channels-1)
+                logger.debug("Fetch channel %s/%s", channel, num_channels-1)
 
                 img_level = np.zeros(shape=(height, width), dtype=np.uint16)
                 executor = ThreadPoolExecutor()
                 for x, y in itertools.product(range(tiles_width), range(tiles_height)):
-                    executor.submit(_download_tile, minerva_client, img_level, image_uuid, x, y, 0, 0, channel, level, ".tif", tile_size)
+                    f = executor.submit(_download_tile, minerva_client, img_level, image_uuid, x, y, 0, 0, channel, level, ".tif", tile_size)
+                    f.add_done_callback(done_callback)
 
                 subfiletype = 0 if (level == 0) else 1
                 extra_tags = [(SOFTWARE_TAG_CODE, "s", 1, "Minerva (Glencoe/Faas pyramid output)", True)]
@@ -54,8 +63,8 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
             width = math.ceil(width / 2)
             height = math.ceil(height / 2)
 
-    logging.info("Completed - export time: %s", time() - start)
-    logging.info("Image file: %s", output_path)
+    logger.debug("Completed - export time: %s", time() - start)
+    logger.debug("Image file: %s", output_path)
 
 def _get_image_and_metadata(minerva_client, image_uuid):
     try:
