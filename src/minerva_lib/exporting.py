@@ -17,12 +17,14 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
     image, ome_metadata = _get_image_and_metadata(minerva_client, image_uuid)
     if image is None:
         raise KeyError(image_uuid)
-    logging.info(ome_metadata)
+    logger.info(ome_metadata)
 
     if output_path is None:
         output_path = image["included"]["images"][0]["name"]
         if output_path.endswith(".ome"):
             output_path += ".tif"
+        elif not output_path.endswith(".ome.tif"):
+            output_path += ".ome.tif"
 
     tiles_processed = 0
     total_tiles = 0
@@ -65,6 +67,7 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
 
     logger.debug("Completed - export time: %s", time() - start)
     logger.debug("Image file: %s", output_path)
+    return output_path
 
 def _get_image_and_metadata(minerva_client, image_uuid):
     try:
@@ -73,10 +76,10 @@ def _get_image_and_metadata(minerva_client, image_uuid):
         return image, ome_metadata
     except HTTPError as e:
         if e.response.status_code == 403:
-            logging.error("Image %s does not exist or insufficient permissions", image_uuid)
+            logger.error("Image %s does not exist or insufficient permissions", image_uuid)
             return None, None
         elif e.response.status_code == 422:
-            logging.error("%s is not a valid UUID", image_uuid)
+            logger.error("%s is not a valid UUID", image_uuid)
             return None, None
         raise e
 

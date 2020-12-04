@@ -15,9 +15,11 @@ REQUIRES = [
     'boto3>=1.12.39',
     'requests==2.22.0',
     'scikit-learn',
-    'tifffile>=2020.9.3',
+    'tifffile>=2020.11.26',
     'importlib-resources',
-    's3transfer'
+    's3transfer',
+    'imagecodecs',
+    'zarr'
 ]
 
 TEST_REQUIRES = [
@@ -97,5 +99,5 @@ setup(
     keywords=['minerva', 'library', 'microscopy'],
     zip_safe=False,
     ext_modules=[crender],
-    python_requires='>=3.6',
+    python_requires='>=3.7',
 )

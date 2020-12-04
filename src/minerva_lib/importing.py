@@ -3,6 +3,8 @@ import logging, time, sys, os
 import random, string, re
 import math
 from concurrent.futures import ThreadPoolExecutor
+import zarr
+
 from .client import MinervaClient
 from .util.progress import ProgressPercentage
 from .util.s3 import S3Uploader
@@ -11,6 +13,8 @@ from io import BytesIO
 from tifffile import TiffFile
 import tifffile
 import uuid
+
+logger = logging.getLogger("minerva")
 
 class TileData:
     def __init__(self, data: BytesIO, channel=0, time=0, z=0, level=0, y=0, x=0, extension="png"):
@@ -46,10 +50,10 @@ class MinervaImporter:
         repository_uuid = self._create_or_get_repository(repository, archive)
         # Create a random name for import
         import_uuid = self._create_import(repository_uuid)
-        logging.info("Created new import, uuid: %s", import_uuid)
+        logger.info("Created new import, uuid: %s", import_uuid)
         # Get AWS credentials for S3 bucket for raw image
         credentials, bucket, prefix = self._get_import_credentials(import_uuid)
-        logging.info("Uploading to S3 bucket: %s/%s", bucket, prefix)
+        logger.info("Uploading to S3 bucket: %s/%s", bucket, prefix)
 
         # Upload all files in parallel to S3
         self._upload_raw_files(files, bucket, prefix, credentials)
@@ -67,7 +71,7 @@ class MinervaImporter:
 
         res = self.minerva_client.create_image(name, repository_uuid, format, compression=compression, pyramid_levels=pyramid_levels, tile_size=tile_size)
         image_uuid = res["data"]["uuid"]
-        logging.info("Created new image, uuid: %s", image_uuid)
+        logger.info("Created new image, uuid: %s", image_uuid)
         return image_uuid
 
     def direct_import(self, tile_data: TileData, image_uuid, async_upload=False):
@@ -75,9 +79,9 @@ class MinervaImporter:
             raise ValueError('First argument must be instance of TileData!')
 
         credentials, bucket, prefix = self._get_image_credentials(image_uuid)
-        logging.debug("Credentials %s", credentials)
-        logging.debug("Bucket %s", bucket)
-        logging.debug("Prefix %s", prefix)
+        logger.debug("Credentials %s", credentials)
+        logger.debug("Bucket %s", bucket)
+        logger.debug("Prefix %s", prefix)
         key = prefix + "/" + tile_data.get_filename()
         if not async_upload:
             self.uploader.upload_data(tile_data.data, bucket, key, credentials)
@@ -86,9 +90,9 @@ class MinervaImporter:
 
     def direct_import_files(self, files, image_uuid, async_upload=False):
         credentials, bucket, prefix = self._get_image_credentials(image_uuid)
-        logging.debug("Credentials %s", credentials)
-        logging.debug("Bucket %s", bucket)
-        logging.debug("Prefix %s", prefix)
+        logger.debug("Credentials %s", credentials)
+        logger.debug("Bucket %s", bucket)
+        logger.debug("Prefix %s", prefix)
 
         for file in files:
             key = prefix + "/" + os.path.basename(file)
@@ -101,12 +105,12 @@ class MinervaImporter:
         if self.dryrun:
             return
 
-        logging.info("Importing metadata for image %s", str(image_uuid))
+        logger.info("Importing metadata for image %s", str(image_uuid))
         xml = FileUtils.transform_xml(metadata, image_uuid)
         credentials, bucket, prefix = self._get_image_credentials(image_uuid)
-        logging.debug("Credentials %s", credentials)
-        logging.debug("Bucket %s", bucket)
-        logging.debug("Prefix %s", prefix)
+        logger.debug("Credentials %s", credentials)
+        logger.debug("Bucket %s", bucket)
+        logger.debug("Prefix %s", prefix)
         self.uploader.upload_data(xml, bucket, prefix + '/metadata.xml', credentials)
 
     def wait_upload(self):
@@ -119,12 +123,12 @@ class MinervaImporter:
             raw_storage = "Destroy" if not archive else "Archive"
             res = self.minerva_client.create_repository(repository, raw_storage=raw_storage)
             repository_uuid = res["data"]["uuid"]
-            logging.info("Created new repository, uuid: %s", repository_uuid)
+            logger.info("Created new repository, uuid: %s", repository_uuid)
         else:
             repository_uuid = existing_repository[0]["uuid"]
-            logging.info("Using existing repository uuid: %s", repository_uuid)
+            logger.info("Using existing repository uuid: %s", repository_uuid)
             if archive:
-                logging.warning("Archive flag has no effect, because using existing repository!")
+                logger.warning("Archive flag has no effect, because using existing repository!")
         return repository_uuid
 
     def _create_import(self, repository_uuid):
@@ -164,7 +168,7 @@ class MinervaImporter:
         extract_timeout = 1800  # 30 mins (extend timeout when bfextraction starts)
         timeout_extended = False
         start = time.time()
-        logging.info("Please wait while filesets are created...")
+        logger.info("Please wait while filesets are created...")
         while not all_complete:
             result = self.minerva_client.list_filesets_in_import(import_uuid)
             filesets = result["data"]
@@ -184,10 +188,10 @@ class MinervaImporter:
             if not all_complete:
                 time_spent = time.time() - start
                 if time_spent > timeout:
-                    logging.warning("Waiting for import timed out!")
-                    logging.warning("This does not necessarily mean that import failed, it could just take longer than expected.")
-                    logging.warning("To check fileset progress, run command:")
-                    logging.warning("minerva status")
+                    logger.warning("Waiting for import timed out!")
+                    logger.warning("This does not necessarily mean that import failed, it could just take longer than expected.")
+                    logger.warning("To check fileset progress, run command:")
+                    logger.warning("minerva status")
                     all_complete = True
 
                 time.sleep(2)
@@ -203,78 +207,66 @@ class MinervaImporter:
             progress = p[1]
             sys.stdout.write("{} {}% ".format(fileset["name"], progress))
 
-    def _calculate_total_tiles(self, tif):
+    def _calculate_total_tiles(self, group):
         total_tiles = 0
-        pyramid_levels = 1
-        shape = tif.pages[0].shape
-        for i, page in enumerate(tif.pages):
-            if page.shape != shape:
-                shape = page.shape
-                pyramid_levels += 1
-            total_tiles += math.ceil(shape[0] / 1024) * math.ceil(shape[1] / 1024)
+        for level in group:
+            img = group[level]
+            channels = img.shape[0]
+            height = img.shape[1]
+            width = img.shape[2]
+            total_tiles += channels * math.ceil(height / 1024) * math.ceil(width / 1024)
 
-        return total_tiles, pyramid_levels
+        return total_tiles
 
     def import_ome_tiff(self, file, repository, tile_size=1024, progress_callback=lambda a,b : None, filename=None):
         if filename is None:
-            filename = os.path.basename(file).replace(".", "_")
+            filename = os.path.basename(file)
 
-        with TiffFile(file) as tif:
-            self._check_image_contains_pyramid(tif)
+        with TiffFile(file, is_ome=False) as tif:
+            group = zarr.open(tif.series[0].aszarr())
 
-            total_tiles, total_levels = self._calculate_total_tiles(tif)
-            image_uuid = self.create_image(filename, repository, format="tiff", compression="zstd", pyramid_levels=total_levels, tile_size=tile_size)
+            if len(group) <= 1:
+                raise ValueError("Image does not contain pyramid levels.")
+
+            total_tiles = self._calculate_total_tiles(group)
+            image_uuid = self.create_image(filename, repository, format="tiff", compression="zstd", pyramid_levels=len(group), tile_size=tile_size)
             credentials, bucket, prefix = self._get_image_credentials(image_uuid)
             metadata = tif.pages[0].tags['ImageDescription'].value
             self.direct_import_metadata(metadata, image_uuid)
 
             tiles_processed = 0
-            shape = tif.pages[0].shape
-            pyramid_level = 0
-            channel = 0
 
             def done_callback(f):
                 progress_callback(tiles_processed, total_tiles)
 
-            for i, page in enumerate(tif.pages):
+            for pyramid_level in group:
+                img = group[pyramid_level]
 
-                if page.shape != shape:
-                    pyramid_level += 1
-                    channel = 0
-                    shape = page.shape
+                num_channels = img.shape[0]
+                tiles_height = math.ceil(img.shape[1] / tile_size)
+                tiles_width = math.ceil(img.shape[2] / tile_size)
 
-                img = page.asarray()
-                tiles_width = math.ceil(shape[1] / tile_size)
-                tiles_height = math.ceil(shape[0] / tile_size)
+                # TODO - Handle t and z dimensions
                 t = 0
                 z = 0
+                for channel in range(num_channels):
+                    for tile_x in range(0, tiles_width):
+                        for tile_y in range(0, tiles_height):
+                            logger.debug("Processing L=%s C=%s X=%s Y=%s", pyramid_level, channel, tile_x, tile_y)
+                            tile = img[channel, tile_y*tile_size:(tile_y+1)*tile_size, tile_x*tile_size:(tile_x+1)*tile_size]
 
-                for tile_x in range(0, tiles_width):
-                    for tile_y in range(0, tiles_height):
-                        tile = img[tile_y*tile_size:(tile_y+1)*tile_size, tile_x*tile_size:(tile_x+1)*tile_size]
+                            buf = io.BytesIO()
+                            tifffile.imwrite(buf, tile, compress=("ZSTD", 1))
+                            buf.seek(0)
+                            filename = f'C{channel}-T{t}-Z{z}-L{pyramid_level}-Y{tile_y}-X{tile_x}.tif'
+                            tile_key = f'{prefix}/{filename}'
 
-                        buf = io.BytesIO()
-                        tifffile.imwrite(buf, tile, compress=("ZSTD", 1))
-                        buf.seek(0)
-                        filename = f'C{channel}-T{t}-Z{z}-L{pyramid_level}-Y{tile_y}-X{tile_x}.tif'
-                        tile_key = f'{prefix}/{filename}'
+                            if not self.dryrun:
+                                future = self.uploader.async_upload(buf, bucket, tile_key, credentials)
+                                future.add_done_callback(done_callback)
+                            else:
+                                progress_callback(tiles_processed, total_tiles)
 
-                        if not self.dryrun:
-                            future = self.uploader.async_upload(buf, bucket, tile_key, credentials)
-                            future.add_done_callback(done_callback)
-                        else:
-                            progress_callback(tiles_processed, total_tiles)
-
-                        tiles_processed += 1
-
-                channel += 1
+                            tiles_processed += 1
 
         self.uploader.wait_upload()
-
-    def _check_image_contains_pyramid(self, tif):
-        shape = tif.pages[0].shape
-        for page in tif.pages:
-            if page.shape != shape:
-                return
-
-        raise ValueError("Image does not contain pyramid levels.")
