@@ -11,7 +11,7 @@ class S3Uploader:
         self.region = region
         self.transfer_config = s3transfer.manager.TransferConfig()
         self.transfer_manager = None
-        self.executor = concurrent.futures.ThreadPoolExecutor()
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
     def upload_file(self, filepath, bucket, object_name, credentials, callback: ProgressPercentage=None):
         try:

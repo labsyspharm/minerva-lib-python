@@ -43,7 +43,7 @@ class MinervaImporter:
         self.minerva_client = minerva_client
         self.uploader = uploader
         self.region = region
-        self.executor = ThreadPoolExecutor()
+        self.executor = ThreadPoolExecutor(max_workers=10)
         self.dryrun = dryrun
 
     def import_files(self, files, repository=None, archive=False):

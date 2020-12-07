@@ -48,7 +48,7 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
                 logger.debug("Fetch channel %s/%s", channel, num_channels-1)
 
                 img_level = np.zeros(shape=(height, width), dtype=np.uint16)
-                executor = ThreadPoolExecutor()
+                executor = ThreadPoolExecutor(max_workers=10)
                 for x, y in itertools.product(range(tiles_width), range(tiles_height)):
                     f = executor.submit(_download_tile, minerva_client, img_level, image_uuid, x, y, 0, 0, channel, level, ".tif", tile_size)
                     f.add_done_callback(done_callback)
