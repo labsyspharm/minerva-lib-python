@@ -61,7 +61,7 @@ def composite_channel_numpy(target, image, color, range_min, range_max, out=None
     # Rescale the new channel to a float32 between 0 and 1
     f32_range = (range_min, range_max)
     f32_image = ski.img_as_float(image, dtype=np.float32)
-    f32_image = ski.rescale_intensity(f64_image, f64_range)
+    f32_image = ski.rescale_intensity(f32_image, f32_range)
 
     # Colorize and add the new channel to composite image
     for i, component in enumerate(color):
