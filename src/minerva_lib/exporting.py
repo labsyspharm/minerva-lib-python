@@ -17,7 +17,7 @@ def export_image(minerva_client: MinervaClient, image_uuid: str, output_path: st
     image, ome_metadata = _get_image_and_metadata(minerva_client, image_uuid)
     if image is None:
         raise KeyError(image_uuid)
-    logger.info(ome_metadata)
+    logger.debug(ome_metadata)
 
     if output_path is None:
         output_path = image["included"]["images"][0]["name"]

@@ -49,6 +49,26 @@ def composite_channel(target, image, color, range_min, range_max, out=None):
         crender.composite8(out_p, image_p, color[0], color[1], color[2], length)
     return out
 
+def composite_channel_numpy(target, image, color, range_min, range_max, out=None):
+    '''
+    Same as composite_channel but uses numpy operations for rescaling and compositing.
+    This is a slower method, but works with numpy views.
+    '''
+
+    if out is None:
+        out = target.copy()
+
+    # Rescale the new channel to a float32 between 0 and 1
+    f32_range = (range_min, range_max)
+    f32_image = ski.img_as_float(image, dtype=np.float32)
+    f32_image = ski.rescale_intensity(f64_image, f64_range)
+
+    # Colorize and add the new channel to composite image
+    for i, component in enumerate(color):
+        out[:, :, i] += f32_image * component
+
+    return out
+
 def composite_channels(channels, gamma=None):
     '''Render each image in _channels_ additively into a composited image
 
@@ -384,7 +404,7 @@ def composite_subtile(out, subtile, position, color, range_min, range_max):
     y_1, x_1 = [y_0, x_0] + shape
 
     # Composite the subtile into the output
-    composite_channel(out[y_0:y_1, x_0:x_1], subtile, color, range_min,
+    composite_channel_numpy(out[y_0:y_1, x_0:x_1], subtile, color, range_min,
                       range_max, out[y_0:y_1, x_0:x_1])
     return out
 
