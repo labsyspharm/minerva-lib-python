@@ -12,14 +12,15 @@ with open(os.path.join(HERE, 'README.md')) as f:
 
 REQUIRES = [
     'numpy>=1.18',
-    'boto3>=1.12.39',
+    'boto3==1.14.44',
+    'botocore==1.17.44',  # 1.17.44 required because of aiobotocore
     'requests==2.22.0',
-    'scikit-learn',
     'tifffile>=2020.11.26',
     'importlib-resources',
     's3transfer',
     'imagecodecs',
-    'zarr'
+    'zarr==2.6.1',
+    's3fs==0.5.2'
 ]
 
 TEST_REQUIRES = [
