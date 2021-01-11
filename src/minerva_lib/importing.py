@@ -274,13 +274,6 @@ class MinervaImporter:
 
             credentials, bucket, prefix = self._get_image_credentials(image_uuid)
 
-            metadata = tif.pages[0].tags['ImageDescription'].value
-            self.direct_import_metadata(metadata,
-                                        image_uuid,
-                                        credentials=credentials,
-                                        bucket=bucket,
-                                        prefix=prefix)
-
             total_tiles = self._calculate_total_tiles(group_or_array)
             tiles_processed = 0
             def done_callback(f):
@@ -339,7 +332,18 @@ class MinervaImporter:
                     progress_callback(tiles_processed, total_tiles)
                     tiles_processed += 1
 
+            # Metadata.xml has to be uploaded after zarr upload, otherwise zarr will overwrite
+            # the whole key
+            metadata = tif.pages[0].tags['ImageDescription'].value
+            self.direct_import_metadata(metadata,
+                                        image_uuid,
+                                        credentials=credentials,
+                                        bucket=bucket,
+                                        prefix=prefix)
+
         executor.shutdown()
+
+
 
     def _upload_zarr(self, arr, t, channel, z, y, x, tile_size, tile):
         arr[t, channel, z, y:y + tile_size, x:x + tile_size] = tile
