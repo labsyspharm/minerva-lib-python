@@ -3,15 +3,18 @@ import logging, time, sys, os
 import random, string, re
 import math
 from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 import zarr
+import s3fs
+import boto3
+from tifffile import TiffFile
+import itertools
 
 from .client import MinervaClient
 from .util.progress import ProgressPercentage
 from .util.s3 import S3Uploader
 from .util.fileutils import FileUtils
 from io import BytesIO
-from tifffile import TiffFile
-import tifffile
 import uuid
 
 logger = logging.getLogger("minerva")
@@ -101,13 +104,14 @@ class MinervaImporter:
             else:
                 self.executor.submit(self.uploader.upload_file, file, bucket, key, credentials)
 
-    def direct_import_metadata(self, metadata, image_uuid):
+    def direct_import_metadata(self, metadata, image_uuid, credentials=None, bucket=None, prefix=None):
         if self.dryrun:
             return
 
         logger.info("Importing metadata for image %s", str(image_uuid))
         xml = FileUtils.transform_xml(metadata, image_uuid)
-        credentials, bucket, prefix = self._get_image_credentials(image_uuid)
+        if credentials is None or bucket is None or prefix is None:
+            credentials, bucket, prefix = self._get_image_credentials(image_uuid)
         logger.debug("Credentials %s", credentials)
         logger.debug("Bucket %s", bucket)
         logger.debug("Prefix %s", prefix)
@@ -146,8 +150,7 @@ class MinervaImporter:
 
     def _get_image_credentials(self, image_uuid):
         if self.dryrun:
-            return ({}, "bucket", "prefix")
-
+            return ({"AccessKeyId": "", "SecretAccessKey": "",  "SessionToken": ""}, "bucket", "prefix")
         return self.minerva_client.get_image_credentials(image_uuid)
 
     def _upload_raw_files(self, files, bucket, prefix, credentials):
@@ -207,66 +210,136 @@ class MinervaImporter:
             progress = p[1]
             sys.stdout.write("{} {}% ".format(fileset["name"], progress))
 
+    def _get_dimensions(self, level):
+        if len(level.shape) == 3:
+            channels = level.shape[0]
+            height = level.shape[1]
+            width = level.shape[2]
+        else:
+            channels = 1
+            height = level.shape[0]
+            width = level.shape[1]
+
+        return channels, height, width
+
     def _calculate_total_tiles(self, group):
         total_tiles = 0
-        for level in group:
-            img = group[level]
-            channels = img.shape[0]
-            height = img.shape[1]
-            width = img.shape[2]
+        for name in group:
+            level = group[name]
+            channels, height, width = self._get_dimensions(level)
             total_tiles += channels * math.ceil(height / 1024) * math.ceil(width / 1024)
 
         return total_tiles
 
-    def import_ome_tiff(self, file, repository, tile_size=1024, progress_callback=lambda a,b : None, filename=None):
-        if filename is None:
-            filename = os.path.basename(file)
+    def import_ome_tiff(self, file, repository, tile_size=1024, progress_callback=lambda a,b : None, image_name=None):
+        """
+        Processes an ome.tif client side and imports it directly into S3 tilebucket.
+
+        Parameters
+        ----------
+        file - File path
+        repository - Repository name
+        tile_size - Tile size, default 1024
+        progress_callback - Callback function to report progress
+        image_name - Image name, by default is taken from the filename
+        """
+        if image_name is None:
+            image_name = os.path.basename(file)
+
+        executor = ThreadPoolExecutor(max_workers=10)
+        # limit the queue of pending uploads to 100
+        queue_limit = 100
+        futures = set()
 
         with TiffFile(file, is_ome=False) as tif:
-            group = zarr.open(tif.series[0].aszarr())
+            # Depending on whether the image contains pyramid or not,
+            # this will either be Zarr Group or Array
+            group_or_array = zarr.open(tif.aszarr())
 
-            if len(group) <= 1:
-                raise ValueError("Image does not contain pyramid levels.")
+            if isinstance(group_or_array, zarr.core.Array):
+                i = 0 if len(group_or_array.shape) == 2 else 1
+                if group_or_array.shape[i] > tile_size and group_or_array.shape[i+1] > tile_size:
+                    logger.error("Local importing of images without pyramid is not currently supported. Use server-side importing instead.")
+                    raise ValueError("Image is larger than TILE_SIZE but does not contain pyramid levels.")
+                num_levels = 1
+            else:
+                num_levels = len(group_or_array)
 
-            total_tiles = self._calculate_total_tiles(group)
-            image_uuid = self.create_image(filename, repository, format="tiff", compression="zstd", pyramid_levels=len(group), tile_size=tile_size)
+            image_uuid = self.create_image(image_name,
+                                           repository,
+                                           format="zarr",
+                                           compression="zstd",
+                                           pyramid_levels=num_levels,
+                                           tile_size=tile_size)
+
             credentials, bucket, prefix = self._get_image_credentials(image_uuid)
+
             metadata = tif.pages[0].tags['ImageDescription'].value
-            self.direct_import_metadata(metadata, image_uuid)
+            self.direct_import_metadata(metadata,
+                                        image_uuid,
+                                        credentials=credentials,
+                                        bucket=bucket,
+                                        prefix=prefix)
 
+            total_tiles = self._calculate_total_tiles(group_or_array)
             tiles_processed = 0
-
             def done_callback(f):
                 progress_callback(tiles_processed, total_tiles)
 
-            for pyramid_level in group:
-                img = group[pyramid_level]
+            compressor = zarr.Blosc(cname='zstd', clevel=3)
 
-                num_channels = img.shape[0]
+            s3 = s3fs.S3FileSystem(anon=self.dryrun,
+                                   client_kwargs=dict(region_name=self.region),
+                                   key=credentials["AccessKeyId"],
+                                   secret=credentials["SecretAccessKey"],
+                                   token=credentials["SessionToken"])
+
+            if not self.dryrun:
+                zarr_store = s3fs.S3Map(root=f"{bucket}/{prefix}", s3=s3, check=False, create=False)
+            else:
+                zarr_store = zarr.DirectoryStore("./zarrtmp")
+
+            # In OME-ZARR each pyramid level will be stored as a separate zarr Array, named by
+            # the index number of the level, e.g. "0" is highest detail level
+            # All Arrays are stored under a zarr Group.
+            output = zarr.group(store=zarr_store, overwrite=True)
+
+            for pyramid_level in range(num_levels):
+                if isinstance(group_or_array, zarr.core.Array):
+                    img = group_or_array
+                else:
+                    img = group_or_array[pyramid_level]
+
+                num_channels, height, width = self._get_dimensions(img)
+
                 tiles_height = math.ceil(img.shape[1] / tile_size)
                 tiles_width = math.ceil(img.shape[2] / tile_size)
+
+                arr = output.create(shape=(1, num_channels, 1, height, width), chunks=(1, 1, 1, 1024, 1024),
+                                    name=str(pyramid_level), dtype=img.dtype, compressor=compressor)
 
                 # TODO - Handle t and z dimensions
                 t = 0
                 z = 0
-                for channel in range(num_channels):
-                    for tile_x in range(0, tiles_width):
-                        for tile_y in range(0, tiles_height):
-                            logger.debug("Processing L=%s C=%s X=%s Y=%s", pyramid_level, channel, tile_x, tile_y)
-                            tile = img[channel, tile_y*tile_size:(tile_y+1)*tile_size, tile_x*tile_size:(tile_x+1)*tile_size]
+                channels_range = range(num_channels)
+                x_range = range(0, tiles_width)
+                y_range = range(0, tiles_height)
 
-                            buf = io.BytesIO()
-                            tifffile.imwrite(buf, tile, compress=("ZSTD", 1))
-                            buf.seek(0)
-                            filename = f'C{channel}-T{t}-Z{z}-L{pyramid_level}-Y{tile_y}-X{tile_x}.tif'
-                            tile_key = f'{prefix}/{filename}'
+                for channel, tile_x, tile_y in itertools.product(channels_range, x_range, y_range):
+                    logger.debug("Processing L=%s C=%s X=%s Y=%s", pyramid_level, channel, tile_x, tile_y)
+                    x = tile_x * tile_size
+                    y = tile_y * tile_size
+                    tile = img[channel, y:y + tile_size, x:x + tile_size]
 
-                            if not self.dryrun:
-                                future = self.uploader.async_upload(buf, bucket, tile_key, credentials)
-                                future.add_done_callback(done_callback)
-                            else:
-                                progress_callback(tiles_processed, total_tiles)
+                    if len(futures) >= queue_limit:
+                        done, futures = concurrent.futures.wait(futures, return_when=concurrent.futures.FIRST_COMPLETED)
+                    future = executor.submit(self._upload_zarr, arr, t, channel, z, y, x, tile_size, tile)
+                    futures.add(future)
 
-                            tiles_processed += 1
+                    progress_callback(tiles_processed, total_tiles)
+                    tiles_processed += 1
 
-        self.uploader.wait_upload()
+        executor.shutdown()
+
+    def _upload_zarr(self, arr, t, channel, z, y, x, tile_size, tile):
+        arr[t, channel, z, y:y + tile_size, x:x + tile_size] = tile
