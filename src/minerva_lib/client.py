@@ -8,6 +8,8 @@ import requests
 import json
 import botocore
 import tifffile
+import s3fs
+import zarr
 
 
 class InvalidUsernameOrPassword(Exception):
@@ -110,24 +112,24 @@ class MinervaClient:
         }
         return credentials, bucket, prefix
 
-    def get_raw_tile(self, uuid, x, y, z, t, c, level, format=".tif"):
+    def get_raw_tile(self, uuid, x, y, z, t, c, level, tile_size=1024):
         if uuid not in self.credentials_cache:
             self.get_image_credentials(uuid)
 
         credentials = self.credentials_cache[uuid]["credentials"]
         bucket = self.credentials_cache[uuid]["bucket"]
 
-        s3 = boto3.client("s3", aws_access_key_id=credentials["AccessKeyId"],
-                          aws_secret_access_key=credentials["SecretAccessKey"],
-                          aws_session_token=credentials["SessionToken"],
-                          region_name=self.region)
+        s3 = s3fs.S3FileSystem(anon=False,
+                               client_kwargs=dict(region_name=self.region),
+                               key=credentials["AccessKeyId"],
+                               secret=credentials["SecretAccessKey"],
+                               token=credentials["SessionToken"])
 
-        key = f'{uuid}/C{c}-T{t}-Z{z}-L{level}-Y{y}-X{x}{format}'
-        obj = s3.get_object(Bucket=bucket, Key=key)
-        body = obj['Body']
-        data = body.read()
-        stream = BytesIO(data)
-        return tifffile.imread(stream)
+        zarr_store = s3fs.S3Map(root=f"{bucket}/{uuid}", s3=s3, check=False, create=False)
+        group = zarr.group(store=zarr_store, overwrite=False)
+        arr = group[str(level)]
+        tile = arr[t, c, z, y:y + tile_size, x:x + tile_size]
+        return tile
 
     def get_image_metadata(self, image_uuid):
         return base64.b64decode(self.request('GET', '/image/' + image_uuid + '/metadata', json_response=False))
@@ -146,6 +148,9 @@ class MinervaClient:
 
     def list_images_in_fileset(self, fileset_uuid):
         return self.request('GET', '/fileset/' + fileset_uuid + '/images')
+
+    def list_images_in_repository(self, repository_uuid):
+        return self.request('GET', '/repository/' + repository_uuid + '/images')
 
     def get_image_dimensions(self, image_uuid):
         return self.request('GET', '/image/' + image_uuid + '/dimensions')
