@@ -1,0 +1,8 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <link href="https://fonts.googleapis.com/css?family=Anonymous+Pro|Raleway|Lato" rel="stylesheet">
+{% endblock %}
+
+{% set css_files = css_files + ['_static/pygments.css'] %}
