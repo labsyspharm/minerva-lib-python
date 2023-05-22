@@ -14,7 +14,7 @@ REQUIRES = [
     'numpy>=1.18',
     'boto3>=1.14.44',
     'botocore>=1.17.44',  # (exact 1.17.44 is required if aiobotocore is used)
-    'requests==2.22.0',
+    'requests==2.31.0',
     'tifffile>=2020.11.26',
     'importlib-resources',
     's3transfer',
